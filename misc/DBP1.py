@@ -126,6 +126,6 @@ if __name__=="__main__":
     d=Default()
     d.create_tables()
     db=Database(d.conn, d.cursor)
-    db.add_directory("/home/ng8/Music")#
+    db.add_directory("")#place file path
     db.scan()
     db.close()  
