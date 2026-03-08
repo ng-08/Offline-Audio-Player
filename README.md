@@ -1,5 +1,5 @@
 This is a semi-vibe coded Audio Player, its still in early development, following is a per file discription:-
-
+- a
 FNP1 — bare bones VLC audio engine, terminal controlled. Tests loading and playing any audio format, toggle play/pause, stop. No GUI.
 FNP2 — first CustomTkinter GUI. Single play/pause button with icon swap, VLC backend wired in. Proof of concept for the UI/audio connection.
 FNP3 — major step up. Added next/prev controls, SQLite queue system, database scan for local music, cover art extraction and display, title/artist labels.
