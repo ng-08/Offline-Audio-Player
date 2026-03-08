@@ -373,7 +373,7 @@ class Default:
                 Artist TEXT,
                 Album TEXT,
                 Duration INTEGER,
-                HasCover TEXT DEFAULT 0,
+                HasCover INTEGER DEFAULT 0,
                 TrackNumber INTEGER,
                 Year INTEGER,
                 Genre TEXT,
