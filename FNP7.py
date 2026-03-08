@@ -5,6 +5,7 @@ import sys
 import base64
 import sqlite3
 from PIL import Image
+from mutagen import File
 from mutagen.asf import ASF
 from mutagen.mp4 import MP4
 import customtkinter as ctk
@@ -88,7 +89,7 @@ class BasicUI(ctk.CTkFrame):#
 
         ctk.CTkFrame(self, height=50, fg_color="transparent").pack()
 
-        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetDirCsong()), size=(300, 300))
+        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
         self.cover_label=ctk.CTkLabel(self, image=self.cover_img, text="")
         self.cover_label.pack(pady=(40, 10))
 
@@ -156,7 +157,7 @@ class BasicUI(ctk.CTkFrame):#
         self.engine.load(Dir)
         self.title_label.configure(text=self.pi.GetTitle(CS))
         self.artist_label.configure(text=self.pi.GetArtist(CS))
-        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(Dir), size=(300, 300))
+        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
         self.cover_label.configure(image=self.cover_img)
 
         self.q.Refill(1, "Songs")
@@ -179,7 +180,7 @@ class BasicUI(ctk.CTkFrame):#
             self.engine.load(Dir)
             self.title_label.configure(text=self.pi.GetTitle(CS))
             self.artist_label.configure(text=self.pi.GetArtist(CS))
-            self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(Dir), size=(300, 300))
+            self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
             self.cover_label.configure(image=self.cover_img)
 
 class PlayerInfo:#
@@ -226,51 +227,57 @@ class PlayerInfo:#
         else:
             return "N-A"
         
-    def GetCoverArt(self, file_path):#
-        cover=Image.new("RGB", (300, 300), color=(40, 40, 40))
-        try:
-            if file_path.lower().endswith('.mp3'):
-                tags=MP3(file_path, ID3=ID3)
-                for tag in tags.values():
-                    if tag.FrameID=='APIC':
-                        cover=Image.open(io.BytesIO(tag.data))
+    def GetCoverArt(self, SongSno, file_path):#
+        self.cursor.execute("SELECT HasCover FROM SongData WHERE SongSno = ?", (SongSno,))
+        row = self.cursor.fetchone()
+        if not row or row[0] == 0:
+            return Image.new("RGB", (300, 300), color=(40, 40, 40))
 
-            elif file_path.lower().endswith('.flac'):
-                audio = FLAC(file_path)
-                if audio.pictures:
-                    cover = Image.open(io.BytesIO(audio.pictures[0].data))
+        else:
+            cover=Image.new("RGB", (300, 300), color=(40, 40, 40))
+            try:
+                if file_path.lower().endswith('.mp3'):
+                    tags=MP3(file_path, ID3=ID3)
+                    for tag in tags.values():
+                        if tag.FrameID=='APIC':
+                            cover=Image.open(io.BytesIO(tag.data))
 
-            elif file_path.lower().endswith('.ogg'):
-                audio = OggVorbis(file_path)
-                if 'metadata_block_picture' in audio:
-                    pic = Picture(base64.b64decode(audio['metadata_block_picture'][0]))
-                    cover = Image.open(io.BytesIO(pic.data))
+                elif file_path.lower().endswith('.flac'):
+                    audio = FLAC(file_path)
+                    if audio.pictures:
+                        cover = Image.open(io.BytesIO(audio.pictures[0].data))
 
-            elif file_path.lower().endswith('.wav'):
-                audio = WAVE(file_path)
-                if audio.tags:
-                    for tag in audio.tags.values():
-                        if tag.FrameID == 'APIC':
-                            cover = Image.open(io.BytesIO(tag.data))
+                elif file_path.lower().endswith('.ogg'):
+                    audio = OggVorbis(file_path)
+                    if 'metadata_block_picture' in audio:
+                        pic = Picture(base64.b64decode(audio['metadata_block_picture'][0]))
+                        cover = Image.open(io.BytesIO(pic.data))
 
-            elif file_path.lower().endswith('.m4a'):
-                audio = MP4(file_path)
-                if audio.tags and 'covr' in audio.tags:
-                    cover = Image.open(io.BytesIO(bytes(audio.tags['covr'][0])))
+                elif file_path.lower().endswith('.wav'):
+                    audio = WAVE(file_path)
+                    if audio.tags:
+                        for tag in audio.tags.values():
+                            if tag.FrameID == 'APIC':
+                                cover = Image.open(io.BytesIO(tag.data))
 
-            elif file_path.lower().endswith('.opus'):
-                audio = OggOpus(file_path)
-                if 'metadata_block_picture' in audio:
-                    pic = Picture(base64.b64decode(audio['metadata_block_picture'][0]))
-                    cover = Image.open(io.BytesIO(pic.data))
+                elif file_path.lower().endswith('.m4a'):
+                    audio = MP4(file_path)
+                    if audio.tags and 'covr' in audio.tags:
+                        cover = Image.open(io.BytesIO(bytes(audio.tags['covr'][0])))
 
-            elif file_path.lower().endswith('.wma'):
-                audio = ASF(file_path)
-                if 'WM/Picture' in audio.tags:
-                    cover = Image.open(io.BytesIO(bytes(audio.tags['WM/Picture'][0].value)))
-            
-        except:
-            pass
+                elif file_path.lower().endswith('.opus'):
+                    audio = OggOpus(file_path)
+                    if 'metadata_block_picture' in audio:
+                        pic = Picture(base64.b64decode(audio['metadata_block_picture'][0]))
+                        cover = Image.open(io.BytesIO(pic.data))
+
+                elif file_path.lower().endswith('.wma'):
+                    audio = ASF(file_path)
+                    if 'WM/Picture' in audio.tags:
+                        cover = Image.open(io.BytesIO(bytes(audio.tags['WM/Picture'][0].value)))
+
+            except:
+                pass
 
         return cover
 
@@ -354,7 +361,8 @@ class Default:
                 SongSno INTEGER PRIMARY KEY AUTOINCREMENT,
                 DirSno INTEGER,
                 SubPath TEXT,
-                SongFileName TEXT,      
+                SongFileName TEXT,
+                FileType TEXT,
                 FOREIGN KEY (DirSno) REFERENCES Directories(DirSno)            
             )
         ''')
@@ -365,7 +373,7 @@ class Default:
                 Artist TEXT,
                 Album TEXT,
                 Duration INTEGER,
-                CoverArt TEXT,
+                HasCover TEXT DEFAULT 0,
                 TrackNumber INTEGER,
                 Year INTEGER,
                 Genre TEXT,
@@ -426,17 +434,33 @@ class Database:#
                     relative_path=os.path.relpath(root, dirPath)
                     subpath="" if relative_path=="." else relative_path
                     filePath=os.path.join(root, file)
+                    
                     try:
                         if filePath.lower().endswith('.mp3'):
                             tags=EasyID3(filePath)
                             duration=int(MP3(filePath).info.length)
+                            audio=File(filePath)
                         else:
-                            from mutagen import File
                             audio=File(filePath)
                             if audio is None:
                                 continue
                             tags=audio.tags
                             duration=int(audio.info.length) if audio.info else 0
+
+                        ext=os.path.splitext(file)[1].lower()
+                        has_cover = 0
+                        if ext=='.mp3':
+                            has_cover=1 if audio and audio.tags and any(t.FrameID=='APIC' for t in audio.tags.values()) else 0
+                        elif ext=='.flac':
+                            has_cover=1 if audio and audio.pictures else 0
+                        elif ext in ('.ogg', '.opus'):
+                            has_cover=1 if audio and 'metadata_block_picture' in audio else 0
+                        elif ext=='.wav':
+                            has_cover=1 if audio and audio.tags and any(getattr(t,'FrameID','')=='APIC' for t in audio.tags.values()) else 0
+                        elif ext=='.m4a':
+                            has_cover=1 if audio and audio.tags and 'covr' in audio.tags else 0
+                        elif ext=='.wma':
+                            has_cover=1 if audio and audio.tags and 'WM/Picture' in audio.tags else 0
 
                         title=str(tags.get("title", [file])[0]) if tags else file
                         artist=str(tags.get("artist", [""])[0]) if tags else ""
@@ -446,16 +470,16 @@ class Database:#
                         tracknum=str(tags.get("tracknumber", [""])[0]) if tags else ""
 
                         self.cursor.execute("""
-                            INSERT INTO Songs (DirSno, SubPath, SongFileName)
-                            VALUES (?, ?, ?)
-                        """, (dirSno, subpath, file,))
+                            INSERT INTO Songs (DirSno, SubPath, SongFileName, FileType)
+                            VALUES (?, ?, ?, ?)
+                        """, (dirSno, subpath, file, os.path.splitext(file)[1].lower()))
 
                         SongSno=self.cursor.lastrowid
 
                         self.cursor.execute("""
-                            INSERT INTO SongData (SongSno, Title, Artist, Album, Duration, TrackNumber, Year, Genre, DateAdded)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (SongSno, title, artist, album, duration, tracknum, year, genre, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                            INSERT INTO SongData (SongSno, Title, Artist, Album, Duration, HasCover, TrackNumber, Year, Genre, DateAdded)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (SongSno, title, artist, album, duration, has_cover, tracknum, year, genre, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
                     except Exception:
                         continue
@@ -529,7 +553,7 @@ class Display:#
         self.cursor.execute(f"SELECT SongSno FROM {table} ORDER BY {metric} {order}")
 
         for i in self.cursor.fetchall():
-            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0]))
+            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0],))
         self.conn.commit()
 
     def Search(self, table, querry):
@@ -541,7 +565,7 @@ class Display:#
                             ''', (f'%{querry}%', f'%{querry}%', f'%{querry}%', f'%{querry}%'))
         
         for i in self.cursor.fetchall():
-            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0]))
+            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0],))
         self.conn.commit()
 
     def Populate(self,table):
@@ -551,7 +575,7 @@ class Display:#
         self.cursor.execute(f"SELECT SongSno FROM {table}")
 
         for i in self.cursor.fetchall():
-            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0]))
+            self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0],))
         self.conn.commit()
 
 class Playlist:###
@@ -666,308 +690,174 @@ class History:###
     def ClearHistory(self):
         self.cursor.execute("DELETE FROM History")
         self.conn.commit()
- 
-class Metadata:#
-    def __init__(self):
-        self.format_map = {
-            '.mp3':  (self._read_mp3,  self._write_mp3),
-            '.flac': (self._read_flac, self._write_flac),
-            '.ogg':  (self._read_ogg,  self._write_ogg),
-            '.wav':  (self._read_wav,  self._write_wav),
-            '.m4a':  (self._read_m4a,  self._write_m4a),
-            '.opus': (self._read_opus, self._write_opus),
-            '.wma':  (self._read_wma,  self._write_wma),
-        }
 
-    def read(self, file_path):
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext not in self.format_map:
-            return {}
-        read_func, _ = self.format_map[ext]
-        return read_func(file_path)
+class Metadata:
+    def __init__(self, conn, cursor):
+        self.conn = conn
+        self.cursor = cursor
 
-    def _read_mp3(self, path):
-        try:
-            tags = EasyID3(path)
-            audio = MP3(path, ID3=ID3)
-            has_cover = any(tag.FrameID == 'APIC' for tag in audio.tags.values()) if audio.tags else False
-            return {
-                'title':       tags.get('title',       [''])[0],
-                'artist':      tags.get('artist',      [''])[0],
-                'album':       tags.get('album',       [''])[0],
-                'genre':       tags.get('genre',       [''])[0],
-                'year':        tags.get('date',        [''])[0],
-                'tracknumber': tags.get('tracknumber', [''])[0],
-                'duration':    int(audio.info.length),
-                'has_cover':   has_cover,
-            }
-        except Exception:
-            return {}
+    def edit(self, SongSno, data):
+        data = {k: v for k, v in data.items() if v not in (None, '', [])} #?
 
-    def _read_flac(self, path):
-        try:
-            audio = FLAC(path)
-            return {
-                'title':       audio.get('title',       [''])[0],
-                'artist':      audio.get('artist',      [''])[0],
-                'album':       audio.get('album',       [''])[0],
-                'genre':       audio.get('genre',       [''])[0],
-                'year':        audio.get('date',        [''])[0],
-                'tracknumber': audio.get('tracknumber', [''])[0],
-                'duration':    int(audio.info.length),
-                'has_cover':   bool(audio.pictures),
-            }
-        except Exception:
-            return {}
-
-    def _read_ogg(self, path):
-        try:
-            audio = OggVorbis(path)
-            return {
-                'title':       audio.get('title',       [''])[0],
-                'artist':      audio.get('artist',      [''])[0],
-                'album':       audio.get('album',       [''])[0],
-                'genre':       audio.get('genre',       [''])[0],
-                'year':        audio.get('date',        [''])[0],
-                'tracknumber': audio.get('tracknumber', [''])[0],
-                'duration':    int(audio.info.length),
-                'has_cover':   'metadata_block_picture' in audio,
-            }
-        except Exception:
-            return {}
-
-    def _read_wav(self, path):
-        try:
-            audio = WAVE(path)
-            tags = audio.tags or {}
-            has_cover = any(getattr(t, 'FrameID', '') == 'APIC' for t in tags.values()) if tags else False
-            return {
-                'title':       str(tags.get('TIT2', '')),
-                'artist':      str(tags.get('TPE1', '')),
-                'album':       str(tags.get('TALB', '')),
-                'genre':       str(tags.get('TCON', '')),
-                'year':        str(tags.get('TDRC', '')),
-                'tracknumber': str(tags.get('TRCK', '')),
-                'duration':    int(audio.info.length),
-                'has_cover':   has_cover,
-            }
-        except Exception:
-            return {}
-
-    def _read_m4a(self, path):
-        try:
-            audio = MP4(path)
-            tags = audio.tags or {}
-            return {
-                'title':       tags.get('\xa9nam', [''])[0],
-                'artist':      tags.get('\xa9ART', [''])[0],
-                'album':       tags.get('\xa9alb', [''])[0],
-                'genre':       tags.get('\xa9gen', [''])[0],
-                'year':        tags.get('\xa9day', [''])[0],
-                'tracknumber': str(tags.get('trkn', [(0, 0)])[0][0]),
-                'duration':    int(audio.info.length),
-                'has_cover':   'covr' in tags,
-            }
-        except Exception:
-            return {}
-
-    def _read_opus(self, path):
-        try:
-            audio = OggOpus(path)
-            return {
-                'title':       audio.get('title',       [''])[0],
-                'artist':      audio.get('artist',      [''])[0],
-                'album':       audio.get('album',       [''])[0],
-                'genre':       audio.get('genre',       [''])[0],
-                'year':        audio.get('date',        [''])[0],
-                'tracknumber': audio.get('tracknumber', [''])[0],
-                'duration':    int(audio.info.length),
-                'has_cover':   'metadata_block_picture' in audio,
-            }
-        except Exception:
-            return {}
-
-    def _read_wma(self, path):
-        try:
-            audio = ASF(path)
-            tags = audio.tags or {}
-            return {
-                'title':       str(tags.get('Title',          [['']])[0]),
-                'artist':      str(tags.get('Author',         [['']])[0]),
-                'album':       str(tags.get('WM/AlbumTitle',  [['']])[0]),
-                'genre':       str(tags.get('WM/Genre',       [['']])[0]),
-                'year':        str(tags.get('WM/Year',        [['']])[0]),
-                'tracknumber': str(tags.get('WM/TrackNumber', [['']])[0]),
-                'duration':    int(audio.info.length),
-                'has_cover':   'WM/Picture' in tags,
-            }
-        except Exception:
-            return {}
-
-    def write(self, file_path, data):
-        ext = os.path.splitext(file_path)[1].lower()
-        if ext not in self.format_map:
-            return False
-        _, write_func = self.format_map[ext]
-        return write_func(file_path, data)
-
-    def _write_mp3(self, path, data):
-        try:
-            try:
-                tags = EasyID3(path)
-            except:
-                tags = EasyID3()
-                tags.save(path)
-                tags = EasyID3(path)
-
-            if 'title'       in data: tags['title']       = data['title']
-            if 'artist'      in data: tags['artist']      = data['artist']
-            if 'album'       in data: tags['album']       = data['album']
-            if 'genre'       in data: tags['genre']       = data['genre']
-            if 'year'        in data: tags['date']        = data['year']
-            if 'tracknumber' in data: tags['tracknumber'] = data['tracknumber']
-            tags.save()
-
-            if 'cover_path' in data:
-                full_tags = ID3(path)
-                with open(data['cover_path'], 'rb') as img:
-                    img_data = img.read()
-                mime = 'image/jpeg' if data['cover_path'].endswith('.jpg') or data['cover_path'].endswith('.jpeg') else 'image/png'
-                full_tags.delall('APIC')
-                full_tags['APIC'] = APIC(encoding=3, mime=mime, type=3, desc='Cover', data=img_data)
-                full_tags.save()
-            return True
-        except Exception:
+        if not data:
             return False
 
-    def _write_flac(self, path, data):
-        try:
-            audio = FLAC(path)
-            if 'title'       in data: audio['title']       = data['title']
-            if 'artist'      in data: audio['artist']      = data['artist']
-            if 'album'       in data: audio['album']       = data['album']
-            if 'genre'       in data: audio['genre']       = data['genre']
-            if 'year'        in data: audio['date']        = data['year']
-            if 'tracknumber' in data: audio['tracknumber'] = data['tracknumber']
+        self.cursor.execute("""
+            SELECT d.FilePath, s.SubPath, s.SongFileName, s.FileType 
+            FROM Songs s
+            JOIN Directories d ON s.DirSno = d.DirSno
+            WHERE s.SongSno = ?
+        """, (SongSno,))
 
-            if 'cover_path' in data:
-                pic = Picture()
-                with open(data['cover_path'], 'rb') as img:
-                    pic.data = img.read()
-                pic.type = 3
-                pic.mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
-                audio.clear_pictures()
-                audio.add_picture(pic)
-            audio.save()
-            return True
-        except Exception:
+        row=self.cursor.fetchone()
+
+        if not row:
             return False
+        
+        dirPath, subPath, fileName, fileType = row
+        filePath = f"{dirPath}/{subPath}/{fileName}" if subPath else f"{dirPath}/{fileName}"
 
-    def _write_ogg(self, path, data):
+        result = self._write(filePath, fileType, data) #?
+        if result:
+            self.UpdateDB(SongSno, data)
+        return result
+
+    def _write(self, path, ext, data):
         try:
-            audio = OggVorbis(path)
-            if 'title'       in data: audio['title']       = data['title']
-            if 'artist'      in data: audio['artist']      = data['artist']
-            if 'album'       in data: audio['album']       = data['album']
-            if 'genre'       in data: audio['genre']       = data['genre']
-            if 'year'        in data: audio['date']        = data['year']
-            if 'tracknumber' in data: audio['tracknumber'] = data['tracknumber']
+            if ext == '.mp3':
+                try:
+                    tags = EasyID3(path)
+                except:
+                    tags = EasyID3()
+                    tags.save(path)
+                    tags = EasyID3(path)
+                if 'title'       in data: tags['title']       = data['title']
+                if 'artist'      in data: tags['artist']      = data['artist']
+                if 'album'       in data: tags['album']       = data['album']
+                if 'genre'       in data: tags['genre']       = data['genre']
+                if 'year'        in data: tags['date']        = data['year']
+                if 'tracknumber' in data: tags['tracknumber'] = data['tracknumber']
+                tags.save()
+                if 'cover_path' in data:
+                    full_tags = ID3(path)
+                    with open(data['cover_path'], 'rb') as img:
+                        img_data = img.read()
+                    mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
+                    full_tags.delall('APIC')
+                    full_tags['APIC'] = APIC(encoding=3, mime=mime, type=3, desc='Cover', data=img_data)
+                    full_tags.save()
 
-            if 'cover_path' in data:
-                with open(data['cover_path'], 'rb') as img:
-                    img_data = img.read()
-                pic = Picture()
-                pic.data = img_data
-                pic.type = 3
-                pic.mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
-                encoded = base64.b64encode(pic.write()).decode('ascii')
-                audio['metadata_block_picture'] = [encoded]
-            audio.save()
-            return True
-        except Exception:
-            return False
+            elif ext == '.flac':
+                audio = FLAC(path)
+                if 'title'       in data: audio['title']       = data['title']
+                if 'artist'      in data: audio['artist']      = data['artist']
+                if 'album'       in data: audio['album']       = data['album']
+                if 'genre'       in data: audio['genre']       = data['genre']
+                if 'year'        in data: audio['date']        = data['year']
+                if 'tracknumber' in data: audio['tracknumber'] = data['tracknumber']
+                if 'cover_path' in data:
+                    pic = Picture()
+                    with open(data['cover_path'], 'rb') as img:
+                        pic.data = img.read()
+                    pic.type = 3
+                    pic.mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
+                    audio.clear_pictures()
+                    audio.add_picture(pic)
+                audio.save()
 
-    def _write_wav(self, path, data):
-        try:
-            audio = WAVE(path)
-            if audio.tags is None:
-                audio.add_tags()
-            from mutagen.id3 import TIT2, TPE1, TALB, TCON, TDRC, TRCK
-            if 'title'       in data: audio.tags['TIT2'] = TIT2(encoding=3, text=data['title'])
-            if 'artist'      in data: audio.tags['TPE1'] = TPE1(encoding=3, text=data['artist'])
-            if 'album'       in data: audio.tags['TALB'] = TALB(encoding=3, text=data['album'])
-            if 'genre'       in data: audio.tags['TCON'] = TCON(encoding=3, text=data['genre'])
-            if 'year'        in data: audio.tags['TDRC'] = TDRC(encoding=3, text=data['year'])
-            if 'tracknumber' in data: audio.tags['TRCK'] = TRCK(encoding=3, text=data['tracknumber'])
+            elif ext in ('.ogg', '.opus'):
+                audio = OggVorbis(path) if ext == '.ogg' else OggOpus(path)
+                if 'title'       in data: audio['title']       = data['title']
+                if 'artist'      in data: audio['artist']      = data['artist']
+                if 'album'       in data: audio['album']       = data['album']
+                if 'genre'       in data: audio['genre']       = data['genre']
+                if 'year'        in data: audio['date']        = data['year']
+                if 'tracknumber' in data: audio['tracknumber'] = data['tracknumber']
+                if 'cover_path' in data and ext == '.ogg':
+                    with open(data['cover_path'], 'rb') as img:
+                        img_data = img.read()
+                    pic = Picture()
+                    pic.data = img_data
+                    pic.type = 3
+                    pic.mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
+                    audio['metadata_block_picture'] = [base64.b64encode(pic.write()).decode('ascii')]
+                audio.save()
 
-            if 'cover_path' in data:
-                with open(data['cover_path'], 'rb') as img:
-                    img_data = img.read()
-                mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
-                audio.tags.delall('APIC')
-                audio.tags['APIC'] = APIC(encoding=3, mime=mime, type=3, desc='Cover', data=img_data)
+            elif ext == '.wav':
+                from mutagen.id3 import TIT2, TPE1, TALB, TCON, TDRC, TRCK
+                audio = WAVE(path)
+                if audio.tags is None:
+                    audio.add_tags()
+                if 'title'       in data: audio.tags['TIT2'] = TIT2(encoding=3, text=data['title'])
+                if 'artist'      in data: audio.tags['TPE1'] = TPE1(encoding=3, text=data['artist'])
+                if 'album'       in data: audio.tags['TALB'] = TALB(encoding=3, text=data['album'])
+                if 'genre'       in data: audio.tags['TCON'] = TCON(encoding=3, text=data['genre'])
+                if 'year'        in data: audio.tags['TDRC'] = TDRC(encoding=3, text=data['year'])
+                if 'tracknumber' in data: audio.tags['TRCK'] = TRCK(encoding=3, text=data['tracknumber'])
+                if 'cover_path' in data:
+                    with open(data['cover_path'], 'rb') as img:
+                        img_data = img.read()
+                    mime = 'image/jpeg' if data['cover_path'].endswith(('.jpg', '.jpeg')) else 'image/png'
+                    audio.tags.delall('APIC')
+                    audio.tags['APIC'] = APIC(encoding=3, mime=mime, type=3, desc='Cover', data=img_data)
+                audio.save()
 
-            audio.save()
-            return True
-        except Exception:
-            return False
-
-    def _write_m4a(self, path, data):
-        try:
-            audio = MP4(path)
-            if audio.tags is None:
-                audio.add_tags()
-            if 'title'       in data: audio.tags['\xa9nam'] = [data['title']]
-            if 'artist'      in data: audio.tags['\xa9ART'] = [data['artist']]
-            if 'album'       in data: audio.tags['\xa9alb'] = [data['album']]
-            if 'genre'       in data: audio.tags['\xa9gen'] = [data['genre']]
-            if 'year'        in data: audio.tags['\xa9day'] = [data['year']]
-            if 'tracknumber' in data:
-                audio.tags['trkn'] = [(int(data['tracknumber']), 0)]
-            if 'cover_path' in data:
+            elif ext == '.m4a':
                 from mutagen.mp4 import MP4Cover
-                with open(data['cover_path'], 'rb') as img:
-                    img_data = img.read()
-                fmt = MP4Cover.FORMAT_JPEG if data['cover_path'].endswith(('.jpg', '.jpeg')) else MP4Cover.FORMAT_PNG
-                audio.tags['covr'] = [MP4Cover(img_data, imageformat=fmt)]
-            audio.save()
+                audio = MP4(path)
+                if audio.tags is None:
+                    audio.add_tags()
+                if 'title'       in data: audio.tags['\xa9nam'] = [data['title']]
+                if 'artist'      in data: audio.tags['\xa9ART'] = [data['artist']]
+                if 'album'       in data: audio.tags['\xa9alb'] = [data['album']]
+                if 'genre'       in data: audio.tags['\xa9gen'] = [data['genre']]
+                if 'year'        in data: audio.tags['\xa9day'] = [data['year']]
+                if 'tracknumber' in data: audio.tags['trkn']    = [(int(data['tracknumber']), 0)]
+                if 'cover_path' in data:
+                    with open(data['cover_path'], 'rb') as img:
+                        img_data = img.read()
+                    fmt = MP4Cover.FORMAT_JPEG if data['cover_path'].endswith(('.jpg', '.jpeg')) else MP4Cover.FORMAT_PNG
+                    audio.tags['covr'] = [MP4Cover(img_data, imageformat=fmt)]
+                audio.save()
+
+            elif ext == '.wma':
+                audio = ASF(path)
+                if 'title'       in data: audio.tags['Title']          = [data['title']]
+                if 'artist'      in data: audio.tags['Author']         = [data['artist']]
+                if 'album'       in data: audio.tags['WM/AlbumTitle']  = [data['album']]
+                if 'genre'       in data: audio.tags['WM/Genre']       = [data['genre']]
+                if 'year'        in data: audio.tags['WM/Year']        = [data['year']]
+                if 'tracknumber' in data: audio.tags['WM/TrackNumber'] = [data['tracknumber']]
+                if 'cover_path' in data:
+                    with open(data['cover_path'], 'rb') as img:
+                        img_data = img.read()
+                    audio.tags['WM/Picture'] = [ASFByteArrayAttribute(img_data)]
+                audio.save()
+
+            else:
+                return False
+
             return True
         except Exception:
             return False
 
-    def _write_opus(self, path, data):
-        try:
-            audio = OggOpus(path)
-            if 'title'       in data: audio['title']       = data['title']
-            if 'artist'      in data: audio['artist']      = data['artist']
-            if 'album'       in data: audio['album']       = data['album']
-            if 'genre'       in data: audio['genre']       = data['genre']
-            if 'year'        in data: audio['date']        = data['year']
-            if 'tracknumber' in data: audio['tracknumber'] = data['tracknumber']
-            audio.save()
-            return True
-        except Exception:
-            return False
+    def UpdateDB(self, SongSno, data):
+        field_map = {
+            'title':       'Title',
+            'artist':      'Artist',
+            'album':       'Album',
+            'genre':       'Genre',
+            'year':        'Year',
+            'tracknumber': 'TrackNumber',
+            'cover_path':  'HasCover',
+        }
+        fields = [(field_map[k], 1 if k == 'cover_path' else v) for k, v in data.items() if k in field_map] #?
 
-    def _write_wma(self, path, data):
-        try:
-            audio = ASF(path)
-            if 'title'       in data: audio.tags['Title']          = [data['title']]
-            if 'artist'      in data: audio.tags['Author']         = [data['artist']]
-            if 'album'       in data: audio.tags['WM/AlbumTitle']  = [data['album']]
-            if 'genre'       in data: audio.tags['WM/Genre']       = [data['genre']]
-            if 'year'        in data: audio.tags['WM/Year']        = [data['year']]
-            if 'tracknumber' in data: audio.tags['WM/TrackNumber'] = [data['tracknumber']]
-            
-            if 'cover_path' in data:
-                with open(data['cover_path'], 'rb') as img:
-                    img_data = img.read()
-                audio.tags['WM/Picture'] = [ASFByteArrayAttribute(img_data)]
-            
-            audio.save()
-            return True
-        except Exception:
-            return False
+        if not fields:
+            return
+        query = f"UPDATE SongData SET {', '.join(f'{col} = ?' for col, _ in fields)} WHERE SongSno = ?" #?
+        self.cursor.execute(query, [v for _, v in fields] + [SongSno]) #?
+        self.conn.commit()
 
 class AudioEngine:
     def __init__(self):
@@ -1019,4 +909,3 @@ if __name__=="__main__":
     h=History(d.conn, d.cursor)
     main=Main(pi, db, q, h)
     main.mainloop()
-
