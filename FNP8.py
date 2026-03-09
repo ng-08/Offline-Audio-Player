@@ -51,7 +51,7 @@ class Main(ctk.CTk):
         x=(ScreenWidth//2)-(AppWidth//2)
         y=(ScreenHeight//2)-(AppHeight//2)
         
-        self.geometry(f"{AppHeight}x{AppHeight}+{x}+{y}")
+        self.geometry(f"{AppWidth}x{AppHeight}+{x}+{y}")
         
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -228,13 +228,45 @@ class PlayerInfo:#
             return "N-A"
         
     def GetCoverArt(self, SongSno, file_path):#
-        self.cursor.execute("SELECT HasCover FROM SongData WHERE SongSno = ?", (SongSno,))
+        cover = None
+        self.cursor.execute("SELECT CoverSource FROM SongData WHERE SongSno = ?", (SongSno,))
         row = self.cursor.fetchone()
-        if not row or row[0] == 0:
+        if row[0] == None:
+            self.cursor.execute("SELECT Artist, Album FROM SongData WHERE SongSno = ?", (SongSno,))
+            CSD=self.cursor.fetchone()
+            self.cursor.execute("SELECT SongSno FROM SongData WHERE Artist = ? AND Album = ? AND CoverSource = 1", (CSD[0],CSD[1],))
+            X=self.cursor.fetchone()
+            X=X[0] if X else None
+
+            if X == None:
+                self.cursor.execute("UPDATE SongData SET CoverSource = 3 WHERE SongSno = ?", (SongSno,))
+                self.GetCoverArtWEB()
+
+            elif X != None:
+                self.cursor.execute("UPDATE SongData SET CoverSource = 2 WHERE SongSno = ?", (SongSno,))
+                self.cursor.execute("SELECT DirSno FROM Songs WHERE SongSno = ?", (X,))
+                CSDirNo=self.cursor.fetchone()[0]
+                self.cursor.execute("SELECT FilePath FROM Directories WHERE DirSno = ?", (CSDirNo,))
+                CSDirFP=self.cursor.fetchone()[0]
+                self.cursor.execute("SELECT SongFileName FROM Songs WHERE SongSno = ?", (X,))
+                CSSFN=self.cursor.fetchone()[0]
+                self.cursor.execute("SELECT SubPath FROM Songs WHERE SongSno = ?", (X,))
+                CSSP=self.cursor.fetchone()[0]
+                if CSSP:
+                    DirACP=f"{CSDirFP}/{CSSP}/{CSSFN}"
+                else:
+                    DirACP=f"{CSDirFP}/{CSSFN}"
+                
+                return self.GetCoverArtACA(SongSno, X, DirACP)
+            
+            else:
+                self.cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,))
+                return Image.new("RGB", (300, 300), color=(40, 40, 40))
+
+        elif row[0] == 0:
             return Image.new("RGB", (300, 300), color=(40, 40, 40))
 
-        else:
-            cover=Image.new("RGB", (300, 300), color=(40, 40, 40))
+        elif row[0] == 1:
             try:
                 if file_path.lower().endswith('.mp3'):
                     tags=MP3(file_path, ID3=ID3)
@@ -279,7 +311,56 @@ class PlayerInfo:#
             except:
                 pass
 
+        elif row[0] == 2:
+            self.cursor.execute("SELECT AltCoverSSNO FROM SongData WHERE SongSno = ?", (SongSno,))
+            X=self.cursor.fetchone()[0]
+
+            self.cursor.execute("SELECT DirSno FROM Songs WHERE SongSno = ?", (X,))
+            CSDirNo=self.cursor.fetchone()[0]
+            self.cursor.execute("SELECT FilePath FROM Directories WHERE DirSno = ?", (CSDirNo,))
+            CSDirFP=self.cursor.fetchone()[0]
+            self.cursor.execute("SELECT SongFileName FROM Songs WHERE SongSno = ?", (X,))
+            CSSFN=self.cursor.fetchone()[0]
+            self.cursor.execute("SELECT SubPath FROM Songs WHERE SongSno = ?", (X,))
+            CSSP=self.cursor.fetchone()[0]
+            if CSSP:
+                DirACP=f"{CSDirFP}/{CSSP}/{CSSFN}"
+            else:
+                DirACP=f"{CSDirFP}/{CSSFN}"
+
+            cover=self.GetCoverArt(X, DirACP)
+
+            if cover is None:
+                self.cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,)) 
+                self.conn.commit()
+                return Image.new("RGB", (300, 300), color=(40, 40, 40))
+                
+            else:
+                pass
+            
+            return cover
+        
+        elif row[0] == 3:
+            pass
+        
+        self.conn.commit()
+        return cover if cover is not None else Image.new("RGB", (300, 300), color=(40, 40, 40))
+
+    def GetCoverArtACA(self, SongSno, X, file_path):
+        cover=self.GetCoverArt(X, file_path)
+
+        if cover is None:
+            self.cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,))
+            return Image.new("RGB", (300, 300), color=(40, 40, 40))
+
+        else:
+            self.cursor.execute("UPDATE SongData SET AltCoverSSNO = ? WHERE SongSno = ?", (X, SongSno,))
+        
+        self.conn.commit()
         return cover
+    
+    def GetCoverArtWEB(self):
+        pass
 
 class PlayerBar(ctk.CTkFrame):
     def __init__(self, master, engine):
@@ -373,7 +454,8 @@ class Default:
                 Artist TEXT,
                 Album TEXT,
                 Duration INTEGER,
-                HasCover INTEGER DEFAULT 0,
+                CoverSource INTEGER DEFAULT NULL,
+                AltCoverSSNO INTEGER DEFAULT NULL,
                 TrackNumber INTEGER,
                 Year INTEGER,
                 Genre TEXT,
@@ -448,19 +530,20 @@ class Database:#
                             duration=int(audio.info.length) if audio.info else 0
 
                         ext=os.path.splitext(file)[1].lower()
-                        has_cover = 0
+                        cover_source = None
+
                         if ext=='.mp3':
-                            has_cover=1 if audio and audio.tags and any(t.FrameID=='APIC' for t in audio.tags.values()) else 0
+                            cover_source=1 if audio and audio.tags and any(t.FrameID=='APIC' for t in audio.tags.values()) else None
                         elif ext=='.flac':
-                            has_cover=1 if audio and audio.pictures else 0
+                            cover_source=1 if audio and audio.pictures else None
                         elif ext in ('.ogg', '.opus'):
-                            has_cover=1 if audio and 'metadata_block_picture' in audio else 0
+                            cover_source=1 if audio and 'metadata_block_picture' in audio else None
                         elif ext=='.wav':
-                            has_cover=1 if audio and audio.tags and any(getattr(t,'FrameID','')=='APIC' for t in audio.tags.values()) else 0
+                            cover_source=1 if audio and audio.tags and any(getattr(t,'FrameID','')=='APIC' for t in audio.tags.values()) else None
                         elif ext=='.m4a':
-                            has_cover=1 if audio and audio.tags and 'covr' in audio.tags else 0
+                            cover_source=1 if audio and audio.tags and 'covr' in audio.tags else None
                         elif ext=='.wma':
-                            has_cover=1 if audio and audio.tags and 'WM/Picture' in audio.tags else 0
+                            cover_source=1 if audio and audio.tags and 'WM/Picture' in audio.tags else None
 
                         title=str(tags.get("title", [file])[0]) if tags else file
                         artist=str(tags.get("artist", [""])[0]) if tags else ""
@@ -477,9 +560,9 @@ class Database:#
                         SongSno=self.cursor.lastrowid
 
                         self.cursor.execute("""
-                            INSERT INTO SongData (SongSno, Title, Artist, Album, Duration, HasCover, TrackNumber, Year, Genre, DateAdded)
+                            INSERT INTO SongData (SongSno, Title, Artist, Album, Duration, CoverSource, TrackNumber, Year, Genre, DateAdded)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (SongSno, title, artist, album, duration, has_cover, tracknum, year, genre, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                        """, (SongSno, title, artist, album, duration, cover_source, tracknum, year, genre, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
                     except Exception:
                         continue
@@ -849,7 +932,7 @@ class Metadata:
             'genre':       'Genre',
             'year':        'Year',
             'tracknumber': 'TrackNumber',
-            'cover_path':  'HasCover',
+            'cover_path':  'CoverSource',
         }
         fields = [(field_map[k], 1 if k == 'cover_path' else v) for k, v in data.items() if k in field_map] #?
 
