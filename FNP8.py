@@ -2,8 +2,11 @@ import io
 import os
 import vlc
 import sys
+import queue
 import base64
 import sqlite3
+import requests
+import threading
 from PIL import Image
 from mutagen import File
 from mutagen.asf import ASF
@@ -89,7 +92,10 @@ class BasicUI(ctk.CTkFrame):#
 
         ctk.CTkFrame(self, height=50, fg_color="transparent").pack()
 
-        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
+        art = self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong())
+        if art is None:
+            art = Image.new("RGB", (300, 300), color=(40, 40, 40))
+        self.cover_img=ctk.CTkImage(art, size=(300, 300))
         self.cover_label=ctk.CTkLabel(self, image=self.cover_img, text="")
         self.cover_label.pack(pady=(40, 10))
 
@@ -126,6 +132,10 @@ class BasicUI(ctk.CTkFrame):#
 
         self.shuffle = False
 
+        self._cover_queue = queue.Queue()
+        self.pi.cover_callback = self.RefreshCover
+        self._check_cover_queue()
+
     def TogglePP(self):
         if self.engine.is_playing():
             self.engine.pause()
@@ -157,7 +167,10 @@ class BasicUI(ctk.CTkFrame):#
         self.engine.load(Dir)
         self.title_label.configure(text=self.pi.GetTitle(CS))
         self.artist_label.configure(text=self.pi.GetArtist(CS))
-        self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
+        art = self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong())
+        if art is None:
+            art = Image.new("RGB", (300, 300), color=(40, 40, 40))
+        self.cover_img=ctk.CTkImage(art, size=(300, 300))
         self.cover_label.configure(image=self.cover_img)
 
         self.q.Refill(1, "Songs")
@@ -180,8 +193,31 @@ class BasicUI(ctk.CTkFrame):#
             self.engine.load(Dir)
             self.title_label.configure(text=self.pi.GetTitle(CS))
             self.artist_label.configure(text=self.pi.GetArtist(CS))
-            self.cover_img=ctk.CTkImage(self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong()), size=(300, 300))
+            art = self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong())
+            if art is None:
+                art = Image.new("RGB", (300, 300), color=(40, 40, 40))
+            self.cover_img=ctk.CTkImage(art, size=(300, 300))
             self.cover_label.configure(image=self.cover_img)
+
+    def _check_cover_queue(self):
+        try:
+            while True:
+                SongSno = self._cover_queue.get_nowait()
+                if self.pi.GetCsong() == SongSno:
+                    self._UpdateCover()
+        except:
+            pass
+        self.after(200, self._check_cover_queue)
+
+    def RefreshCover(self, SongSno):
+        self._cover_queue.put(SongSno)
+
+    def _UpdateCover(self):
+        art = self.pi.GetCoverArt(self.pi.GetCsong(), self.pi.GetDirCsong())
+        if art is None:
+            art = Image.new("RGB", (300, 300), color=(40, 40, 40))
+        self.cover_img = ctk.CTkImage(art, size=(300, 300))
+        self.cover_label.configure(image=self.cover_img)
 
 class PlayerInfo:#
     def __init__(self, conn, cursor):
@@ -240,7 +276,7 @@ class PlayerInfo:#
 
             if X == None:
                 self.cursor.execute("UPDATE SongData SET CoverSource = 3 WHERE SongSno = ?", (SongSno,))
-                self.GetCoverArtWEB()
+                return self.GetCoverArtWEB(SongSno, CSD[0], CSD[1])
 
             elif X != None:
                 self.cursor.execute("UPDATE SongData SET CoverSource = 2 WHERE SongSno = ?", (SongSno,))
@@ -341,7 +377,13 @@ class PlayerInfo:#
             return cover
         
         elif row[0] == 3:
-            pass
+            self.cursor.execute("SELECT AltCoverPath, Artist, Album FROM SongData WHERE SongSno = ?", (SongSno,))
+            row3 = self.cursor.fetchone()
+            path = row3[0]
+            if path and os.path.exists(path):
+                cover = Image.open(path)
+            else:
+                return self.GetCoverArtWEB(SongSno, row3[1], row3[2])
         
         self.conn.commit()
         return cover if cover is not None else Image.new("RGB", (300, 300), color=(40, 40, 40))
@@ -359,8 +401,73 @@ class PlayerInfo:#
         self.conn.commit()
         return cover
     
-    def GetCoverArtWEB(self):
-        pass
+    def GetCoverArtWEB(self, SongSno, artist, album):
+        callback = getattr(self, 'cover_callback', None)
+        thread = threading.Thread(target=self._FetchWEB, args=(SongSno, artist, album, callback), daemon=True)
+        thread.start()
+        return None
+
+    def _FetchWEB(self, SongSno, artist, album, callback=None):
+        try:
+            conn = sqlite3.connect("Music.db")
+            cursor = conn.cursor()
+
+            cache_dir = os.path.expanduser("~/.cache/oap/covers")
+            os.makedirs(cache_dir, exist_ok=True)
+
+            cursor.execute("""
+                SELECT AltCoverPath FROM SongData
+                WHERE Artist = ? AND Album = ? AND AltCoverPath IS NOT NULL
+                LIMIT 1
+            """, (artist, album))
+            existing = cursor.fetchone()
+            if existing and os.path.exists(existing[0]):
+                cursor.execute("UPDATE SongData SET AltCoverPath = ? WHERE SongSno = ?", (existing[0], SongSno,))
+                conn.commit()
+                conn.close()
+                if callback:
+                    callback(SongSno)
+                return
+
+            r = requests.get("https://itunes.apple.com/search", params={
+                "term": f"{artist} {album}",
+                "media": "music",
+                "entity": "album",
+                "limit": 1
+            }, timeout=10)
+            results = r.json().get("results", [])
+            if not results:
+                cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,))
+                conn.commit()
+                conn.close()
+                return
+
+            img_url = results[0]["artworkUrl100"].replace("100x100bb", "600x600bb")
+            r2 = requests.get(img_url, timeout=10)
+            if r2.status_code != 200:
+                cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,))
+                conn.commit()
+                conn.close()
+                return
+
+            cache_path = os.path.join(cache_dir, f"{SongSno}.jpg")
+            with open(cache_path, "wb") as f:
+                f.write(r2.content)
+
+            cursor.execute("UPDATE SongData SET AltCoverPath = ? WHERE SongSno = ?", (cache_path, SongSno,))
+            conn.commit()
+            conn.close()
+
+            if callback:
+                callback(SongSno)
+
+        except:
+            try:
+                cursor.execute("UPDATE SongData SET CoverSource = 0 WHERE SongSno = ?", (SongSno,))
+                conn.commit()
+                conn.close()
+            except:
+                pass
 
 class PlayerBar(ctk.CTkFrame):
     def __init__(self, master, engine):
@@ -428,6 +535,7 @@ class PlayerBar(ctk.CTkFrame):
 class Default:
     def __init__(self):
         self.conn=sqlite3.connect("Music.db")
+        self.conn.execute("PRAGMA journal_mode=WAL")
         self.cursor=self.conn.cursor()
     
     def create_tables(self):
@@ -456,6 +564,7 @@ class Default:
                 Duration INTEGER,
                 CoverSource INTEGER DEFAULT NULL,
                 AltCoverSSNO INTEGER DEFAULT NULL,
+                AltCoverPath TEXT DEFAULT NULL,
                 TrackNumber INTEGER,
                 Year INTEGER,
                 Genre TEXT,
