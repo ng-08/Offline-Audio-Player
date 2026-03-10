@@ -7,7 +7,9 @@ This is an Offline Audio Player, its still in early development, following is a 
 - FNP5 — merged progress bar into main player. Added history recording on track change.
 - FNP6 — shuffle toggle with queue clear and refill, auto advance to next song on track end via VLC event callback, prev button restart logic (restarts if over 3 seconds in, goes back if under), gap-safe random queue using ORDER BY RANDOM().
 - FNP7 — Split Songs table into Songs (file location) and SongData (metadata). Full Metadata class for reading and writing tags across 7 formats (mp3, flac, ogg, wav, m4a, opus, wma). GetCoverArt handles cover extraction per format. has_cover flag added.
-- FNP8 — WIP
+- FNP8 — Improved GetCoverArt, now for the files not having cover art, its fetches it from other files or imports a cover art from iTunes.
+
+- UIP4 — WIP
 
 
 - DBP1/DBP2 — standalone database prototypes. DBP1 is basic Songs table and scan. DBP2 adds Queue, Display, Playlist, History classes before they were merged into FNP.

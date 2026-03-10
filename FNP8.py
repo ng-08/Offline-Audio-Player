@@ -606,7 +606,7 @@ class Default:
 
         self.conn.commit()
 
-class Database:#
+class Database:
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -615,7 +615,7 @@ class Database:#
         self.cursor.execute("INSERT INTO Directories (FilePath) VALUES (?)", (path,))
         self.conn.commit()
 
-    def scan(self):#
+    def scan(self):
         self.cursor.execute("SELECT DirSno, FilePath FROM Directories")
         dirs = self.cursor.fetchall()
 
@@ -733,7 +733,7 @@ class Queue:
         self.cursor.execute("UPDATE Queue SET Played = 0 WHERE QueueNo = ?", (QueueNo,))
         self.conn.commit()
 
-class Display:#
+class Display:##
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -883,7 +883,7 @@ class History:###
         self.cursor.execute("DELETE FROM History")
         self.conn.commit()
 
-class Metadata:
+class Metadata:##
     def __init__(self, conn, cursor):
         self.conn = conn
         self.cursor = cursor
@@ -1096,7 +1096,7 @@ if __name__=="__main__":
     db.add_directory("/home/ng8/Music")#place test song directory
     db.scan()#
     q=Queue(d.conn, d.cursor)#
-    q.ModeRandom("Songs")
+    q.ModeNormal("Songs")#
     pi=PlayerInfo(d.conn, d.cursor)
     h=History(d.conn, d.cursor)
     main=Main(pi, db, q, h)
