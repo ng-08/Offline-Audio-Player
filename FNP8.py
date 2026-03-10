@@ -1096,8 +1096,8 @@ if __name__=="__main__":
     db.add_directory("/home/ng8/Music")#place test song directory
     db.scan()#
     q=Queue(d.conn, d.cursor)#
-    q.ModeNormal("Songs")#
     pi=PlayerInfo(d.conn, d.cursor)
     h=History(d.conn, d.cursor)
+    q.ModeNormal("Songs", pi.GetCsong())
     main=Main(pi, db, q, h)
     main.mainloop()

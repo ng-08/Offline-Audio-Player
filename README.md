@@ -1,4 +1,6 @@
 This is an Offline Audio Player, its still in early development, following is a per file discription:-
+**Only works in linux, as only linux file path suported for now**
+
 
 - FNP1 — bare bones VLC audio engine, terminal controlled. Tests loading and playing any audio format, toggle play/pause, stop. No GUI.
 - FNP2 — first CustomTkinter GUI. Single play/pause button with icon swap, VLC backend wired in. Proof of concept for the UI/audio connection.
