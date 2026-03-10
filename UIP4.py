@@ -821,7 +821,7 @@ class Database:
     def close(self):
         self.conn.close()
 
-class Queue:
+class QueueDB:
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -873,7 +873,7 @@ class Queue:
         self.cursor.execute("UPDATE Queue SET Played = 0 WHERE QueueNo = ?", (QueueNo,))
         self.conn.commit()
 
-class Display:
+class DisplayDB:
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -910,7 +910,7 @@ class Display:
             self.cursor.execute("INSERT INTO Display (SongSno) VALUES (?)", (i[0],))
         self.conn.commit()
 
-class Playlist:
+class PlaylistDB:
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -997,7 +997,7 @@ class Playlist:
         self.cursor.execute("SELECT PlaylistName FROM Playlist")
         return self.cursor.fetchall()
 
-class History:
+class HistoryDB:
     def __init__(self, conn, cursor):
         self.conn=conn
         self.cursor=cursor
@@ -1023,7 +1023,7 @@ class History:
         self.cursor.execute("DELETE FROM History")
         self.conn.commit()
 
-class Metadata:
+class MetadataDB:
     def __init__(self, conn, cursor):
         self.conn = conn
         self.cursor = cursor
