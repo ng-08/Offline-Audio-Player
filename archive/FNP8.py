@@ -35,8 +35,7 @@ SubBGcolor=("#C0C0C0","#222222")
 SubHoverColor=("#979797","#333333")
 TextColor=("#000000","#FFFFFF")
 
-#BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 #code
 class Main(ctk.CTk):
@@ -1098,6 +1097,6 @@ if __name__=="__main__":
     q=Queue(d.conn, d.cursor)#
     pi=PlayerInfo(d.conn, d.cursor)
     h=History(d.conn, d.cursor)
-    q.ModeNormal("Songs", pi.GetCsong())
+    q.ModeRandom("Songs")
     main=Main(pi, db, q, h)
     main.mainloop()
