@@ -221,22 +221,105 @@ class SideBar(ctk.CTkFrame):
         self.label.configure(text_color=TextColor if active else SubTextColor, font=("Ubuntu", 35*MOD, "bold" if active else "normal"))
 
 class AllMusic(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
+        self.command = command
+
+        header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
+        header.pack(fill="x", pady=(0, 20*MOD))
+        header.pack_propagate(False)
+
+        self.AddSbtn=ctk.CTkButton(header, text="+", height=40*MOD, width=40*MOD, fg_color=SelectColor if is_active else SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1, corner_radius=8, text_color=SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.AddMusic)
+        self.AddSbtn.pack(side="right", padx=(5*MOD, 0))
+
+        self.FltBtn=ctk.CTkButton(header, text="F", height=40*MOD, width=40*MOD, fg_color=SelectColor if is_active else SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1, corner_radius=8, text_color=SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.Filter)
+        self.FltBtn.pack(side="left", padx=(0, 5*MOD))
+
+        self.Search=ctk.CTkEntry(header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal"))
+        self.Search.pack(side="left", fill="x", expand=True)
+
+        scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True)
+
+    def AddMusic(self):
+        pass
+
+    def Filter(self):
+        pass
+
+    def OnClick(self, event):
+        if self.command: self.command()
+
+    def SetActive(self, active):
+        self.AddSbtn.configure(fg_color=SelectColor if active else SideBarColor)
+        self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
+
+class AM_DispSong(ctk.CTkFrame):
+    pass
 
 class AM_AddMusic(ctk.CTkFrame):
     pass
 
 class Playlist(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
+        self.command=command
+
+        header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
+        header.pack(fill="x", pady=(0, 20*MOD))
+        header.pack_propagate(False)
+
+        self.AddPlaylBtn=ctk.CTkButton(header, text="+", height=40*MOD, width=40*MOD, fg_color=SelectColor if is_active else SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1, corner_radius=8, text_color=SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.AddPlaylist)
+        self.AddPlaylBtn.pack(side="right", padx=(5*MOD, 0))
+
+        ctk.CTkEntry(header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal")).pack(side="left", fill="x", expand=True)
+
+        scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True)
+
+    def AddPlaylist(self):
+        pass
+
+    def OnClick(self, event):
+        if self.command: self.command()
+
+    def SetActive(self, active):
+        self.AddPlaylBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class P_MakePlaylist(ctk.CTkFrame):
     pass
 
 class History(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
+        self.command=command
+        
+        self.TabBG=ctk.CTkFrame(self, fg_color=SideBarColor, corner_radius=8, border_color=AccentColor, border_width=1*MOD)
+        self.TabBG.pack(fill="x", pady=(0, 20*MOD))
+        self.TabBG.grid_columnconfigure((0, 1), weight=1)
+        self.TabBG.grid_rowconfigure(0, weight=1)
+
+        self.HisBut=ctk.CTkButton(self.TabBG, text="History", fg_color=SelectColor if is_active else "transparent", hover_color=HoverColor, border_color=AccentColor, border_width=1*MOD if is_active else 0, corner_radius=6, text_color=TextColor if is_active else SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.Shistory)
+        self.HisBut.grid(row=0, column=0, sticky="nsew", padx=3*MOD, pady=3*MOD)
+
+        self.StatBut=ctk.CTkButton(self.TabBG, text="Stats", fg_color=SelectColor if is_active else "transparent", hover_color=HoverColor, border_color=AccentColor, border_width=1*MOD if is_active else 0, corner_radius=6, text_color=TextColor if is_active else SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.Sstats)
+        self.StatBut.grid(row=0, column=1, sticky="nsew", padx=3*MOD, pady=3*MOD)
+
+        scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        scroll.pack(fill="both", expand=True)
+
+    def Shistory(self):
+        pass
+
+    def Sstats(self):
+        pass
+
+    def OnClick(self, event):
+        if self.command: self.command()
+
+    def SetActive(self, active):
+        self.HisBut.configure(fg_color=SelectColor if active else "transparent", border_width=1*MOD if active else 0, text_color=TextColor if active else SubTextColor)
+        self.StatBut.configure(fg_color=SelectColor if active else "transparent", border_width=1*MOD if active else 0, text_color=TextColor if active else SubTextColor)
 
 class H_History(ctk.CTkFrame):
     pass
@@ -245,9 +328,86 @@ class H_Stats(ctk.CTkFrame):
     pass
 
 class Settings(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
+        self.command=command
 
+        self.header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
+        self.header.pack(fill="x", pady=(0, 20*MOD))
+        self.header.pack_propagate(False)
+
+        ctk.CTkEntry(self.header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal")).pack(side="left", fill="x", expand=True)
+
+        self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.pack(fill="both", expand=True)
+
+        self.NavButtons = {}
+        self.AddNav("Personalise", S_Personalise)
+        self.AddNav("Sound", S_Sound)
+        self.AddNav("Network", S_Network)
+        self.AddNav("History", S_History)
+        self.AddNav("Notification", S_Notifications)
+        self.AddNav("Keyboard Shortcuts", S_KeyboardShortcut)
+        self.AddNav("About", S_About)
+
+
+        self.TrmBG=ctk.CTkFrame(self.scroll, corner_radius=8, fg_color=SideBarColor, border_color=AccentColor, border_width=2)
+        self.TrmBG.pack(fill="x", pady=(10*MOD, 0))
+        self.label=ctk.CTkLabel(self.TrmBG, text="Terminal", anchor="w", text_color=TextColor, font=("Ubuntu", 30*MOD, "bold"))
+        self.label.pack(fill="x", padx=10*MOD, pady=(10*MOD, 5*MOD))
+        self.Search=ctk.CTkEntry(self.TrmBG, placeholder_text="Cmd...", placeholder_text_color=SubTextColor, text_color=TextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2*MOD, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal"))
+        self.Search.pack(fill="x", padx=10*MOD, pady=(0, 10*MOD))
+
+        ctk.CTkFrame(self.scroll, height=30*MOD, fg_color="transparent").pack()
+        
+        self.frames={}
+        self.current_frame=None
+        
+    def AddNav(self, name, frame_class):
+        btn=SettingsMenu(self.scroll, name, command=lambda n=name:self.ShowFrame(n))
+        btn.pack(fill="x", pady=2*MOD)
+        self.NavButtons[name]={"btn":btn,"class":frame_class}
+
+    def ShowFrame(self, name):
+        if self.current_frame:
+            self.current_frame.pack_forget()
+        frame_class=self.NavButtons[name]["class"]
+        self.current_frame=frame_class(self.MainArea)
+        self.current_frame.pack(fill="both", expand=True)
+
+    def ShowFrame(self, name):
+        if self.current_frame:
+            self.current_frame.pack_forget()
+        else:
+            self.scroll.pack_forget()
+            self.header.pack_forget()
+        frame_class=self.NavButtons[name]["class"]
+        self.current_frame=frame_class(self, back=self.GoBack)
+        self.current_frame.pack(fill="both", expand=True)
+
+    def GoBack(self):
+        self.current_frame.pack_forget()
+        self.current_frame=None
+        self.header.pack(fill="x", pady=(0, 20*MOD))
+        self.scroll.pack(fill="both", expand=True)
+
+class SettingsMenu(ctk.CTkFrame):
+    def __init__(self, master, text, command=None):
+        super().__init__(master, fg_color= "transparent")
+        self.command=command
+
+        self.Butt=ctk.CTkButton(self, text=text, anchor="w", height=55*MOD, text_color= TextColor, fg_color=SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1*MOD, corner_radius=8, font=("Ubuntu", int(30*MOD), "bold"), command=command)
+        self.Butt.pack(fill="x", pady=(10*MOD, 0))
+
+        self.bind("<Button-1>", self.OnClick)
+        
+    def OnClick(self, event):
+        if self.command: self.command()
+
+class S_Personalise(ctk.CTkFrame):
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
         row=ctk.CTkFrame(self, fg_color=SideBarColor, height=50)
         row.pack(fill="x", pady=5)
         ctk.CTkLabel(row, text="Theme").pack(side="left", padx=20)
@@ -256,32 +416,45 @@ class Settings(ctk.CTkFrame):
     def change_theme(self, choice):
         ctk.set_appearance_mode(choice)
 
-class S_Personalise(ctk.CTkFrame):
-    pass
-
 class S_Sound(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_Network(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_History(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_Notifications(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_KeyboardShortcut(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_About(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class S_Terminal:
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class MiniPlayer(ctk.CTkFrame):
-    pass
+    def __init__(self, master, back=None):
+        super().__init__(master, fg_color="transparent")
+        ctk.CTkButton(self, text="← Back", fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(anchor="w", pady=(0, 10*MOD))
 
 class FullScreenPlayer(ctk.CTkFrame):
     def __init__(self, master, pi, q, h):
@@ -432,6 +605,34 @@ class FullScreenPlayer(ctk.CTkFrame):
             art = Image.new("RGB", (300, 300), color=(40, 40, 40))
         self.cover_img = ctk.CTkImage(art, size=(300, 300))
         self.cover_label.configure(image=self.cover_img)
+
+class AM_DispSong(ctk.CTkFrame):
+    def __init__(self, master, SongSno, title, artist, duration, cover=None):
+        super().__init__(master, fg_color="transparent", height=60*MOD)
+        self.pack(fill="x", pady=2*MOD)
+        self.pack_propagate(False)
+        self.SongSno=SongSno
+
+        img = cover if cover else Image.new("RGB", (40, 40), color=(40, 40, 40))
+        self.cover_img=ctk.CTkImage(img, size=(int(45*MOD), int(45*MOD)))
+        ctk.CTkLabel(self, image=self.cover_img, text="").pack(side="left", padx=(0, 10*MOD))
+
+        info=ctk.CTkFrame(self, fg_color="transparent")
+        info.pack(side="left", fill="both", expand=True)
+        ctk.CTkLabel(info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x")
+        ctk.CTkLabel(info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x")
+
+        ctk.CTkLabel(self, text=self._fmt(duration), text_color=SubTextColor, font=("Ubuntu", int(12*MOD)), width=int(45*MOD)).pack(side="right", padx=(0, 5*MOD))
+
+        ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions).pack(side="right")
+
+    def _fmt(self, seconds):
+        if not seconds: return "0:00"
+        m, s=divmod(int(seconds), 60)
+        return f"{m}:{s:02d}"
+
+    def MoreOptions(self):
+        pass
 
 class PlayerInfo:
     def __init__(self, conn, cursor):
@@ -1228,7 +1429,6 @@ class AudioEngine:
 
     def set_end_callback(self, callback):
         self._on_end_callback=callback
-
 
 if __name__=="__main__":
     ini=Initial()
