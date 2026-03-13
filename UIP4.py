@@ -39,7 +39,7 @@ SelectColor=("#DADADA","#252525")
 
 MOD=1
 
-'BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))'
+#BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(__file__)
 
 #code
@@ -146,8 +146,7 @@ class FirstStartUp:
 
 class BasicUI(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master)
-        self.configure(fg_color=BGcolor)
+        super().__init__(master, fg_color="transparent")
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -241,6 +240,22 @@ class AllMusic(ctk.CTkFrame):
         scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll.pack(fill="both", expand=True)
 
+        #temp stuff
+
+        data=[
+            ("Paranoid Android", "Radiohead", "OK Computer", "6:23"),
+            ("Time", "Pink Floyd", "DSOTM", "6:53"),
+            ("Starlight", "Muse", "Black Holes", "3:59"),
+            ("Money", "Pink Floyd", "DSOTM", "6:22"),
+            ("Karma Police", "Radiohead", "OK Computer", "4:21"),
+            ("Uprising", "Muse", "The Resistance", "5:03"),
+        ]
+        for i in range(15):
+            s=data[i % len(data)]
+            AM_DispSong(scroll, i+1, s[0], s[1], s[3])
+
+        ##
+
     def AddMusic(self):
         pass
 
@@ -255,10 +270,76 @@ class AllMusic(ctk.CTkFrame):
         self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class AM_DispSong(ctk.CTkFrame):
-    pass
+    def __init__(self, master, SongSno, title, artist, duration, cover=None):
+        super().__init__(master, fg_color="transparent", height=60*MOD)
+        self.pack(fill="x", pady=2*MOD)
+        self.pack_propagate(False)
+        self.SongSno=SongSno
 
-class AM_AddMusic(ctk.CTkFrame):
-    pass
+        img = cover if cover else Image.new("RGB", (40, 40), color=(40, 40, 40))
+        self.cover_img=ctk.CTkImage(img, size=(int(45*MOD), int(45*MOD)))
+        ctk.CTkLabel(self, image=self.cover_img, text="").pack(side="left", padx=(0, 10*MOD))
+
+        self.info=ctk.CTkFrame(self, fg_color="transparent")
+        self.info.pack(side="left", fill="both", expand=True)
+        ctk.CTkLabel(self.info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x")
+        ctk.CTkLabel(self.info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x")
+
+        ctk.CTkLabel(self, text=duration, text_color=SubTextColor, font=("Ubuntu", int(12*MOD)), width=int(45*MOD)).pack(side="right", padx=(0, 5*MOD))
+
+        ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions).pack(side="right")
+
+    def _fmt(self, seconds):
+        if not seconds: return "0:00"
+        m, s=divmod(int(seconds), 60)
+        return f"{m}:{s:02d}"
+
+    def MoreOptions(self):
+        pass
+
+class AM_DispSong1(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color="transparent", height=60*MOD)
+        self.pack(fill="x", pady=2*MOD)
+        self.pack_propagate(False)
+
+        def DispSong(self):
+            data=DispSongData()
+            for i in data:
+                (SongSno, Title, Artist, Duration, CoverSource)= i
+
+                art=self.pi.GetCoverArt(SongSno, self.pi.GetDirCsong())
+                if art is None:
+                    art = Image.new("RGB", (300, 300), color=(40, 40, 40))
+                self.cover_img=ctk.CTkImage(art, size=(int(45*MOD), int(45*MOD)))
+                ctk.CTkLabel(self, image=self.cover_img, text="").pack(side="left", padx=(0, 10*MOD))
+
+                info=ctk.CTkFrame(self, fg_color="transparent")
+                info.pack(side="left", fill="both", expand=True)
+                ctk.CTkLabel(info, text=Title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x")
+                ctk.CTkLabel(info, text=Artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x")
+
+                ctk.CTkLabel(self, text=_fmt(Duration), text_color=SubTextColor, font=("Ubuntu", int(12*MOD)), width=int(45*MOD)).pack(side="right", padx=(0, 5*MOD))
+                ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions).pack(side="right")
+
+        def MoreOptions(self):
+            pass
+
+        def DispSongData(self):
+            self.cursor.execute("SELECT SongSno FROM Display")
+            data=[]
+            for (SongSno,) in self.cursor.fetchall():
+                self.cursor.execute("SELECT Title, Artist, Duration, CoverSource FROM SongData WHERE SongSno = ?", (SongSno,))
+                row = self.cursor.fetchone()
+                if row:
+                    song=(SongSno, row[0], row[1], row[2], row[3])
+                    data.append(song)
+            return data
+        
+        def _fmt(self, seconds):
+            if not seconds: return "0:00"
+            m, s=divmod(int(seconds), 60)
+            return f"{m}:{s:02d}"
 
 class Playlist(ctk.CTkFrame):
     def __init__(self, master, command=None, is_active=False):
@@ -350,7 +431,6 @@ class Settings(ctk.CTkFrame):
         self.AddNav("Keyboard Shortcuts", S_KeyboardShortcut)
         self.AddNav("About", S_About)
 
-
         self.TrmBG=ctk.CTkFrame(self.scroll, corner_radius=8, fg_color=SideBarColor, border_color=AccentColor, border_width=2)
         self.TrmBG.pack(fill="x", pady=(10*MOD, 0))
         self.label=ctk.CTkLabel(self.TrmBG, text="Terminal", anchor="w", text_color=TextColor, font=("Ubuntu", 30*MOD, "bold"))
@@ -369,18 +449,10 @@ class Settings(ctk.CTkFrame):
         self.NavButtons[name]={"btn":btn,"class":frame_class}
 
     def ShowFrame(self, name):
+        self.scroll.pack_forget()
+        self.header.pack_forget()
         if self.current_frame:
             self.current_frame.pack_forget()
-        frame_class=self.NavButtons[name]["class"]
-        self.current_frame=frame_class(self.MainArea)
-        self.current_frame.pack(fill="both", expand=True)
-
-    def ShowFrame(self, name):
-        if self.current_frame:
-            self.current_frame.pack_forget()
-        else:
-            self.scroll.pack_forget()
-            self.header.pack_forget()
         frame_class=self.NavButtons[name]["class"]
         self.current_frame=frame_class(self, back=self.GoBack)
         self.current_frame.pack(fill="both", expand=True)
@@ -605,34 +677,6 @@ class FullScreenPlayer(ctk.CTkFrame):
             art = Image.new("RGB", (300, 300), color=(40, 40, 40))
         self.cover_img = ctk.CTkImage(art, size=(300, 300))
         self.cover_label.configure(image=self.cover_img)
-
-class AM_DispSong(ctk.CTkFrame):
-    def __init__(self, master, SongSno, title, artist, duration, cover=None):
-        super().__init__(master, fg_color="transparent", height=60*MOD)
-        self.pack(fill="x", pady=2*MOD)
-        self.pack_propagate(False)
-        self.SongSno=SongSno
-
-        img = cover if cover else Image.new("RGB", (40, 40), color=(40, 40, 40))
-        self.cover_img=ctk.CTkImage(img, size=(int(45*MOD), int(45*MOD)))
-        ctk.CTkLabel(self, image=self.cover_img, text="").pack(side="left", padx=(0, 10*MOD))
-
-        info=ctk.CTkFrame(self, fg_color="transparent")
-        info.pack(side="left", fill="both", expand=True)
-        ctk.CTkLabel(info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x")
-        ctk.CTkLabel(info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x")
-
-        ctk.CTkLabel(self, text=self._fmt(duration), text_color=SubTextColor, font=("Ubuntu", int(12*MOD)), width=int(45*MOD)).pack(side="right", padx=(0, 5*MOD))
-
-        ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), fg_color="transparent", hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions).pack(side="right")
-
-    def _fmt(self, seconds):
-        if not seconds: return "0:00"
-        m, s=divmod(int(seconds), 60)
-        return f"{m}:{s:02d}"
-
-    def MoreOptions(self):
-        pass
 
 class PlayerInfo:
     def __init__(self, conn, cursor):
