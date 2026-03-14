@@ -309,7 +309,7 @@ class AM_DispSong(ctk.CTkFrame):
         ctk.CTkLabel(self.info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
         ctk.CTkLabel(self.info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x", padx=(5*MOD,0))
 
-        self.options_but=ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions)
+        self.options_but=ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, corner_radius=30, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions)
         self.options_but.pack(side="right")
 
     def PlayMusic(self, SongSno):
