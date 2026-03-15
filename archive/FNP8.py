@@ -1093,7 +1093,7 @@ if __name__=="__main__":
     d.create_tables()#
     db=Database(d.conn, d.cursor)
     db.add_directory("/home/ng8/Music")#place test song directory
-    db.scan()#
+    #db.scan()#
     q=Queue(d.conn, d.cursor)#
     pi=PlayerInfo(d.conn, d.cursor)
     h=History(d.conn, d.cursor)

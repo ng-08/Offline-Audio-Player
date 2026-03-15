@@ -309,8 +309,17 @@ class AM_DispSong(ctk.CTkFrame):
         ctk.CTkLabel(self.info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
         ctk.CTkLabel(self.info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x", padx=(5*MOD,0))
 
-        self.options_but=ctk.CTkButton(self, text="⋮", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, corner_radius=30, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.MoreOptions)
-        self.options_but.pack(side="right")
+
+        self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.LessOptions)
+        self.options_but.pack_forget()
+        self.AddToQueue=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="", command=self.MoreOptions)
+        self.AddToQueue.pack(side="right", padx=(3*MOD, 10*MOD))
+        self.AddToPlaylist=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions) 
+        self.AddToPlaylist.pack(side="right", padx=(3*MOD, 0))
+        self.EditMetadata=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions)
+        self.EditMetadata.pack(side="right", padx=(3*MOD, 0))
+        self.RemoveSong=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions)
+        self.RemoveSong.pack(side="right", padx=(10*MOD, 0))
 
     def PlayMusic(self, SongSno):
         pass
@@ -324,25 +333,33 @@ class AM_DispSong(ctk.CTkFrame):
         self.configure(height=120*MOD, fg_color=SideBarColor, corner_radius=8*MOD)
         self.cover_img.configure(size=(100,100))
         self.cover_art.configure(image=self.cover_img)
-        self.options_but.configure(command=self.LessOptions)
-        self.AddToQueue=ctk.CTkButton(self, text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=None)
-        self.AddToQueue.pack(side="right", padx=(8*MOD, 5*MOD))
-        self.AddToPlaylist=ctk.CTkButton(self, text="AP", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=None)
-        self.AddToPlaylist.pack(side="right", padx=(8*MOD, 0))
-        self.EditMetadata=ctk.CTkButton(self, text="EM", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=None)
-        self.EditMetadata.pack(side="right", padx=(8*MOD, 0))
-        self.DeleteSong=ctk.CTkButton(self, text="DS", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=None)
-        self.DeleteSong.pack(side="right", padx=(8*MOD, 0))
+        self.options_but.pack(side="right")
+        self.AddToQueue.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.AddToQueueFN)
+        self.AddToPlaylist.configure(text="AP", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.AddToPlaylistFN)
+        self.EditMetadata.configure(text="EM", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.EditMetadataFN)
+        self.RemoveSong.configure(text="DS", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.RemoveSongFN)
 
     def LessOptions(self):
         self.configure(height=60*MOD, fg_color="transparent")
         self.cover_img.configure(size=(45*MOD, 45*MOD))
         self.cover_art.configure(image=self.cover_img)
-        self.options_but.configure(command=self.MoreOptions)
-        self.AddToQueue.pack_forget()
-        self.AddToPlaylist.pack_forget()
-        self.EditMetadata.pack_forget()
-        self.DeleteSong.pack_forget()
+        self.options_but.pack_forget()
+        self.AddToQueue.configure(text="", width=4*MOD, height=35*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.AddToPlaylist.configure(text="", width=4*MOD, height=35*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.EditMetadata.configure(text="", width=4*MOD, height=35*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.RemoveSong.configure(text="", width=4*MOD, height=35*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+
+    def AddToQueueFN(self):
+        pass
+
+    def AddToPlaylistFN(self):
+        pass
+
+    def EditMetadataFN(self):
+        pass
+
+    def RemoveSongFN(self):
+        pass
 
     def refresh(self):
         self.destroy()
