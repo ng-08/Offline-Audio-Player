@@ -131,6 +131,7 @@ class FirstStartUp:
             CREATE TABLE IF NOT EXISTS Playlist (
                 PlaylistSno INTEGER PRIMARY KEY AUTOINCREMENT,
                 PlaylistName TEXT,
+                PlaylistCoverDir TEXT DEFAULT NULL,
                 DateCreated TEXT
             )
         ''')
@@ -246,7 +247,7 @@ class AllMusic(ctk.CTkFrame):
 
         self.GetDispSong()
 
-    def GetDispSong(self):
+    def GetDispSong(self):##
         self.cursor.execute("SELECT SongSno FROM Songs")
         songnos=[row[0] for row in self.cursor.fetchall()]
         data=[]
@@ -258,7 +259,7 @@ class AllMusic(ctk.CTkFrame):
 
         for i in range(len(data)):
             s=data[i % len(data)]
-            AM_DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.conn, self.cursor)
+            DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.conn, self.cursor)
 
     def AddMusic(self):
         pass
@@ -273,7 +274,7 @@ class AllMusic(ctk.CTkFrame):
         self.AddSbtn.configure(fg_color=SelectColor if active else SideBarColor)
         self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
-class AM_DispSong(ctk.CTkFrame):
+class DispSong(ctk.CTkFrame):
     def __init__(self, master, SongSno, title, artist, pi, conn, cursor):
         super().__init__(master)
         self.configure(fg_color="transparent", height=60*MOD)
@@ -309,7 +310,6 @@ class AM_DispSong(ctk.CTkFrame):
         ctk.CTkLabel(self.info, text=title, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
         ctk.CTkLabel(self.info, text=artist, anchor="w", text_color=SubTextColor, font=("Ubuntu", int(12*MOD))).pack(fill="x", padx=(5*MOD,0))
 
-
         self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.LessOptions)
         self.options_but.pack_forget()
         self.AddToQueue=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="", command=self.MoreOptions)
@@ -330,7 +330,7 @@ class AM_DispSong(ctk.CTkFrame):
         return f"{m}:{s:02d}"
 
     def MoreOptions(self):
-        self.configure(height=120*MOD, fg_color=SideBarColor, corner_radius=8*MOD)
+        self.configure(height=120*MOD, fg_color=SideBarColor, corner_radius=8)
         self.cover_img.configure(size=(100,100))
         self.cover_art.configure(image=self.cover_img)
         self.options_but.pack(side="right")
@@ -364,6 +364,12 @@ class AM_DispSong(ctk.CTkFrame):
     def refresh(self):
         self.destroy()
 
+class AM_NoMusicDisp(ctk.CTkFrame):
+    pass
+
+class AM_AddMusicDisp(ctk.CTkFrame):
+    pass
+
 class Playlist(ctk.CTkFrame):
     def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
@@ -391,6 +397,64 @@ class Playlist(ctk.CTkFrame):
         self.AddPlaylBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class P_MakePlaylist(ctk.CTkFrame):
+    pass
+
+class P_PlaylistDisp(ctk.CTkFrame):#
+    def __init__(self, master, PlaylistSno, PlaylistName, pi, conn, cursor):
+        super().__init__(self,master)
+        self.configure(fg_color=SideBarColor, height=120*MOD, corner_radius=8)
+        self.pack(fill="x", pady=2*MOD)
+        self.pack_propagate(False)
+
+        art=None
+        if art is None:
+            art = Image.new("RGB", (45,45), color=(40, 40, 40))
+        self.cover_img=ctk.CTkImage(art, size=(int(45*MOD), int(45*MOD)))
+        self.cover_art=ctk.CTkLabel(self, image=self.cover_img, text="")
+        self.cover_art.pack()
+
+        self.info=ctk.CTkFrame(self, fg_color="transparent")
+        self.info.pack(side="left", fill="both", expand=True)
+        ctk.CTkLabel(self.info, text=PlaylistName, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
+
+        self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.LessOptions)
+        self.options_but.pack_forget()
+        self.change_name=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="", command=self.MoreOptions)
+        self.change_name.pack(side="right", padx=(3*MOD, 10*MOD))
+        self.change_cover=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions) 
+        self.change_cover.pack(side="right", padx=(3*MOD, 0))
+        self.delete_playlist=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions)
+        self.delete_playlist.pack(side="right", padx=(3*MOD, 0))
+
+    def MoreOptions(self):
+        self.change_name.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.ChangeName)
+        self.change_cover.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.ChangeCover)
+        self.delete_playlist.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.DeletePlaylist)
+
+    def LessOptions(self):
+        self.cover_img.configure(size=(45*MOD, 45*MOD))
+        self.cover_art.configure(image=self.cover_img)
+        self.options_but.pack_forget()
+        self.change_name.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.change_cover.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.delete_playlist.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        
+    def ChangeName(self):
+        pass
+
+    def DeletePlaylist(self):
+        pass
+
+    def ChangeCover(self):
+        pass
+
+class P_MusicDisp(ctk.CTkFrame):
+    pass
+
+class P_NoMusicDisp(ctk.CTkFrame):
+    pass
+
+class P_NoPlaylistDisp(ctk.CTkFrame):
     pass
 
 class History(ctk.CTkFrame):
@@ -1264,6 +1328,9 @@ class PlaylistDB:
     def GetAllPlaylists(self):
         self.cursor.execute("SELECT PlaylistName FROM Playlist")
         return self.cursor.fetchall()
+
+    def AddPlaylistCover(self):
+        pass
 
 class HistoryDB:
     def __init__(self, conn, cursor):
