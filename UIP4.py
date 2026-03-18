@@ -224,10 +224,13 @@ class AllMusic(ctk.CTkFrame):
     def __init__(self, master, command=None, is_active=False):
         super().__init__(master, fg_color="transparent")
         self.command = command
+
+        #
         self.conn=sqlite3.connect("Music.db")
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.cursor=self.conn.cursor()
         self.pi=PlayerInfo(self.conn, self.cursor)
+        #
 
         header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
         header.pack(fill="x", pady=(0, 20*MOD))
@@ -260,6 +263,9 @@ class AllMusic(ctk.CTkFrame):
         for i in range(len(data)):
             s=data[i % len(data)]
             DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.conn, self.cursor)
+
+    def OnSearch(self):
+        pass
 
     def AddMusic(self):
         pass
@@ -375,6 +381,13 @@ class Playlist(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self.command=command
 
+        #
+        self.conn=sqlite3.connect("Music.db")
+        self.conn.execute("PRAGMA journal_mode=WAL")
+        self.cursor=self.conn.cursor()
+        self.pi=PlayerInfo(self.conn, self.cursor)
+        #
+
         header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
         header.pack(fill="x", pady=(0, 20*MOD))
         header.pack_propagate(False)
@@ -386,6 +399,23 @@ class Playlist(ctk.CTkFrame):
 
         scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll.pack(fill="both", expand=True)
+
+    def GetPlaylistDisp(self):
+        self.cursor.execute("SELECT PlaylistSno FROM Playlist")
+        Playlistno=[row[0] for row in self.cursor.fetchall()]
+        data=[]
+        for PlaylistSno in Playlistno:
+            self.cursor.execute("SELECT PlaylistName, PlaylistCoverDir FROM Playlist WHERE PlaylistSno = ?", (PlaylistSno,))
+            row=self.cursor.fetchone()
+            if row:
+                data.append((PlaylistSno, row[0], row[1]))
+
+        if data==None:
+            pass
+        else:
+            for i in range(len(data)):
+                s=data[i % len(data)]
+                P_PlaylistDisp(self.scroll, s[0], s[1], s[2], self.pi, self.conn, self.cursor)
 
     def AddPlaylist(self):
         pass
@@ -400,13 +430,20 @@ class P_MakePlaylist(ctk.CTkFrame):
     pass
 
 class P_PlaylistDisp(ctk.CTkFrame):#
-    def __init__(self, master, PlaylistSno, PlaylistName, pi, conn, cursor):
-        super().__init__(self,master)
+    def __init__(self, master, PlaylistSno, PlaylistName, CoverDir, pi, conn, cursor):
+        super().__init__(master)
         self.configure(fg_color=SideBarColor, height=120*MOD, corner_radius=8)
         self.pack(fill="x", pady=2*MOD)
         self.pack_propagate(False)
 
-        art=None
+        self.PlaylistSno=PlaylistSno
+        self.PlaylistName=PlaylistName
+        self.CoverDir=CoverDir
+        self.pi=pi
+        self.conn=conn
+        self.cursor=cursor
+
+        art=None##
         if art is None:
             art = Image.new("RGB", (45,45), color=(40, 40, 40))
         self.cover_img=ctk.CTkImage(art, size=(int(45*MOD), int(45*MOD)))
