@@ -230,6 +230,8 @@ class AllMusic(ctk.CTkFrame):
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.cursor=self.conn.cursor()
         self.pi=PlayerInfo(self.conn, self.cursor)
+        self.engine=AudioEngine()
+        self.QDB=QueueDB(self.conn, self.cursor)
         #
 
         header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
@@ -262,7 +264,7 @@ class AllMusic(ctk.CTkFrame):
 
         for i in range(len(data)):
             s=data[i % len(data)]
-            DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.conn, self.cursor)
+            DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.engine, self.QDB, self.conn, self.cursor)
 
     def OnSearch(self):
         pass
@@ -281,7 +283,7 @@ class AllMusic(ctk.CTkFrame):
         self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class DispSong(ctk.CTkFrame):
-    def __init__(self, master, SongSno, title, artist, pi, conn, cursor):
+    def __init__(self, master, SongSno, title, artist, pi, engine, qdb,conn, cursor):
         super().__init__(master)
         self.configure(fg_color="transparent", height=60*MOD)
         self.pack(fill="x", pady=2*MOD)
@@ -290,6 +292,8 @@ class DispSong(ctk.CTkFrame):
         self.pi=pi
         self.conn=conn
         self.cursor=cursor
+        self.engine=engine
+        self.QDB=qdb
 
         self.cursor.execute("SELECT DirSno FROM Songs WHERE SongSno = ?", (SongSno,))
         CSDirNo=self.cursor.fetchone()[0]
@@ -304,12 +308,17 @@ class DispSong(ctk.CTkFrame):
         else:
             DirACP=f"{CSDirFP}/{CSSFN}"
 
-        art=self.pi.GetCoverArt(SongSno, DirACP)
+        art=self.pi.GetCoverArt(self.SongSno, DirACP)
         if art is None:
             art = Image.new("RGB", (45,45), color=(40, 40, 40))
         self.cover_img=ctk.CTkImage(art, size=(int(45*MOD), int(45*MOD)))
         self.cover_art=ctk.CTkLabel(self, image=self.cover_img, text="")
         self.cover_art.pack(side="left", padx=(10*MOD, 10*MOD))
+        
+        #
+        self.tempplay=ctk.CTkButton(self, text="P", width=40, height=40, corner_radius=30, hover_color=HoverColor, fg_color=AccentColor, text_color=TextColor, font=("Ubuntu", int(20*MOD)), command=self.PlayMusic)
+        self.tempplay.pack(side="left", padx=(10*MOD, 10*MOD))
+        #
 
         self.info=ctk.CTkFrame(self, fg_color="transparent")
         self.info.pack(side="left", fill="both", expand=True)
@@ -327,9 +336,13 @@ class DispSong(ctk.CTkFrame):
         self.RemoveSong=ctk.CTkButton(self, width=4*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions)
         self.RemoveSong.pack(side="right", padx=(10*MOD, 0))
 
-    def PlayMusic(self, SongSno):
-        pass
-
+    def PlayMusic(self):
+        tabel="Songs"
+        self.engine.pause()
+        self.QDB.ModeNormal(tabel ,(self.SongSno)-1)
+        self.engine.load(self.pi.GetDirCsong())
+        self.engine.play()
+            
     def _fmt(self, seconds):
         if not seconds: return "0:00"
         m, s=divmod(int(seconds), 60)
