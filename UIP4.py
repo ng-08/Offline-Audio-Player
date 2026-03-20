@@ -246,6 +246,7 @@ class AllMusic(ctk.CTkFrame):
 
         self.Search=ctk.CTkEntry(header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal"))
         self.Search.pack(side="left", fill="x", expand=True)
+        self.Search.bind("<KeyRelease>", self.OnSearch)
 
         self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True)
@@ -253,7 +254,7 @@ class AllMusic(ctk.CTkFrame):
         self.GetDispSong()
 
     def GetDispSong(self):##
-        self.cursor.execute("SELECT SongSno FROM Songs")
+        self.cursor.execute("SELECT SongSno FROM Display")#
         songnos=[row[0] for row in self.cursor.fetchall()]
         data=[]
         for SongSno in songnos:
@@ -266,8 +267,16 @@ class AllMusic(ctk.CTkFrame):
             s=data[i % len(data)]
             DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.engine, self.QDB, self.conn, self.cursor)
 
-    def OnSearch(self):
-        pass
+    
+    def OnSearch(self, event=None):
+        q=self.Search.get().strip()
+        for w in self.scroll.winfo_children():
+            w.destroy()
+        if q:
+            DisplayDB(self.conn, self.cursor).Search("SongData", q)
+        else:
+            DisplayDB(self.conn, self.cursor).Populate("Songs")
+        self.GetDispSong()
 
     def AddMusic(self):
         pass
@@ -283,7 +292,7 @@ class AllMusic(ctk.CTkFrame):
         self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class DispSong(ctk.CTkFrame):
-    def __init__(self, master, SongSno, title, artist, pi, engine, qdb,conn, cursor):
+    def __init__(self, master, SongSno, title, artist, pi, engine, qdb, conn, cursor):
         super().__init__(master)
         self.configure(fg_color="transparent", height=60*MOD)
         self.pack(fill="x", pady=2*MOD)
@@ -399,6 +408,8 @@ class Playlist(ctk.CTkFrame):
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.cursor=self.conn.cursor()
         self.pi=PlayerInfo(self.conn, self.cursor)
+        self.engine=AudioEngine()
+        self.QDB=QueueDB(self.conn, self.cursor)
         #
 
         header=ctk.CTkFrame(self, fg_color="transparent", height=50*MOD)
@@ -410,8 +421,8 @@ class Playlist(ctk.CTkFrame):
 
         ctk.CTkEntry(header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=40*MOD, fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal")).pack(side="left", fill="x", expand=True)
 
-        scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
-        scroll.pack(fill="both", expand=True)
+        self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.pack(fill="both", expand=True)
 
     def GetPlaylistDisp(self):
         self.cursor.execute("SELECT PlaylistSno FROM Playlist")
@@ -423,7 +434,7 @@ class Playlist(ctk.CTkFrame):
             if row:
                 data.append((PlaylistSno, row[0], row[1]))
 
-        if data==None:
+        if data==[]:
             pass
         else:
             for i in range(len(data)):
@@ -443,7 +454,7 @@ class P_MakePlaylist(ctk.CTkFrame):
     pass
 
 class P_PlaylistDisp(ctk.CTkFrame):#
-    def __init__(self, master, PlaylistSno, PlaylistName, CoverDir, pi, conn, cursor):
+    def __init__(self, master, PlaylistSno, PlaylistName, CoverDir, engine, qdb, pi, conn, cursor):
         super().__init__(master)
         self.configure(fg_color=SideBarColor, height=120*MOD, corner_radius=8)
         self.pack(fill="x", pady=2*MOD)
@@ -455,51 +466,80 @@ class P_PlaylistDisp(ctk.CTkFrame):#
         self.pi=pi
         self.conn=conn
         self.cursor=cursor
+        self.engine=engine
+        self.QDB=qdb
 
         art=None##
         if art is None:
             art = Image.new("RGB", (45,45), color=(40, 40, 40))
-        self.cover_img=ctk.CTkImage(art, size=(int(45*MOD), int(45*MOD)))
+        self.cover_img=ctk.CTkImage(art, size=(int(100*MOD), int(100*MOD)))
         self.cover_art=ctk.CTkLabel(self, image=self.cover_img, text="")
-        self.cover_art.pack()
+        self.cover_art.pack(side="left", padx=(10*MOD, 10*MOD))
 
         self.info=ctk.CTkFrame(self, fg_color="transparent")
         self.info.pack(side="left", fill="both", expand=True)
         ctk.CTkLabel(self.info, text=PlaylistName, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
 
-        self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.LessOptions)
-        self.options_but.pack_forget()
-        self.change_name=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="", command=self.MoreOptions)
-        self.change_name.pack(side="right", padx=(3*MOD, 10*MOD))
-        self.change_cover=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions) 
-        self.change_cover.pack(side="right", padx=(3*MOD, 0))
-        self.delete_playlist=ctk.CTkButton(self, width=4*MOD, height=100*MOD, corner_radius=6, fg_color=SubTextColor, hover_color=SubTextColor, text="", command=self.MoreOptions)
-        self.delete_playlist.pack(side="right", padx=(3*MOD, 0))
-
-    def MoreOptions(self):
-        self.change_name.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.ChangeName)
-        self.change_cover.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.ChangeCover)
-        self.delete_playlist.configure(text="AQ", width=int(80*MOD), height=int(100*MOD), fg_color=AccentColor, hover_color=HoverColor, text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.DeletePlaylist)
-
-    def LessOptions(self):
-        self.cover_img.configure(size=(45*MOD, 45*MOD))
-        self.cover_art.configure(image=self.cover_img)
-        self.options_but.pack_forget()
-        self.change_name.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
-        self.change_cover.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
-        self.delete_playlist.configure(text="", width=4*MOD, height=100*MOD, fg_color=SubTextColor, hover_color=SubTextColor, command=self.MoreOptions)
+        self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.GoToPlaylist)
+        self.options_but.pack(side="right", padx=(10*MOD, 10*MOD))
         
-    def ChangeName(self):
-        pass
-
-    def DeletePlaylist(self):
-        pass
-
-    def ChangeCover(self):
+    def GoToPlaylist(self):
         pass
 
 class P_MusicDisp(ctk.CTkFrame):
-    pass
+    def __init__(self, master, PlaylistSno, PlaylistName, DateCreated, art, CoverDir, pi, conn, cursor):
+        super().__init__(master)
+        self.configure(fg_color=SideBarColor, height=120*MOD, corner_radius=8)
+        self.pack(fill="x", pady=2*MOD)
+        self.pack_propagate(False)
+
+        self.PlaylistSno=PlaylistSno
+        self.PlaylistName=PlaylistName
+        self.CoverDir=CoverDir
+        self.pi=pi
+        self.conn=conn
+        self.cursor=cursor
+        self.art=art
+        self.DateCreated=DateCreated
+
+        self.PlaylistInfo=ctk.CTkFrame(self, fg_color=SideBarColor)
+        self.PlaylistInfo.pack(fill="x")
+
+        self.cover_img=ctk.CTkImage(self.art, size=(int(200*MOD), int(200*MOD)))
+        self.cover_art=ctk.CTkLabel(self.PlaylistInfo, image=self.cover_img, text="")
+        self.cover_art.pack(side="left", padx=(10*MOD, 10*MOD))
+
+        ctk.CTkLabel(self.PlaylistInfo, text=self.PlaylistName, anchor="w", text_color=TextColor, font=("Ubuntu", int(25*MOD), "bold")).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
+        ctk.CTkLabel(self.PlaylistInfo, text=self.DateCreated, anchor="w", text_color=TextColor, font=("Ubuntu", int(15*MOD))).pack(fill="x", pady=(4*MOD, 0), padx=(5*MOD,0))
+
+        self.options=ctk.CTkFrame(self.PlaylistInfo)
+        self.options.pack(side="right", padx=(10,10))
+
+        self.ChangeName=ctk.CTkButton(self.options, width=100*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="CN", command=self.MoreOptions)
+        self.ChangeName.pack(side="right", padx=(3*MOD, 0))
+        self.ChangeCover=ctk.CTkButton(self.options, width=100*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="CA", command=self.MoreOptions) 
+        self.ChangeCover.pack(side="right", padx=(3*MOD, 0))
+        self.DeletePlaylist=ctk.CTkButton(self.options, width=100*MOD, height=35*MOD, corner_radius=6, fg_color=SubTextColor, font=("Ubuntu", int(20*MOD)), hover_color=SubTextColor, text="RP", command=self.MoreOptions)
+        self.DeletePlaylist.pack(side="right", padx=(3*MOD, 0))
+
+        self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.pack(fill="both", expand=True)
+
+        self.GetDispSong(self.PlaylistName)
+
+    def GetDispSong(self, table):##
+        self.cursor.execute(f"SELECT SongSno FROM {table}")
+        songnos=[row[0] for row in self.cursor.fetchall()]
+        data=[]
+        for SongSno in songnos:
+            self.cursor.execute("SELECT Title, Artist FROM SongData WHERE SongSno = ?", (SongSno,))
+            row=self.cursor.fetchone()
+            if row:
+                data.append((SongSno, row[0], row[1]))
+
+        for i in range(len(data)):
+            s=data[i % len(data)]
+            DispSong(self.scroll, s[0], s[1], s[2], self.pi, self.engine, self.QDB, self.conn, self.cursor)
 
 class P_NoMusicDisp(ctk.CTkFrame):
     pass
