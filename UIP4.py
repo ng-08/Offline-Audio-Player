@@ -306,14 +306,14 @@ class Playlist(ctk.CTkFrame):
         self.command=command
         self.data=TempData()
 
-        header=ctk.CTkFrame(self, fg_color="transparent", height=int(50*MOD))
-        header.pack(fill="x", pady=(0, int(20*MOD)))
-        header.pack_propagate(False)
+        self.header=ctk.CTkFrame(self, fg_color="transparent", height=int(50*MOD))
+        self.header.pack(fill="x", pady=(0, int(20*MOD)))
+        self.header.pack_propagate(False)
 
-        self.AddPlaylBtn=ctk.CTkButton(header, text="+", height=int(40*MOD), width=int(40*MOD), fg_color=SelectColor if is_active else SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1, corner_radius=8, text_color=SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.AddPlaylist)
+        self.AddPlaylBtn=ctk.CTkButton(self.header, text="+", height=int(40*MOD), width=int(40*MOD), fg_color=SelectColor if is_active else SideBarColor, hover_color=HoverColor, border_color=AccentColor, border_width=1, corner_radius=8, text_color=SubTextColor, font=("Ubuntu", int(30*MOD), "bold"), command=self.AddPlaylist)
         self.AddPlaylBtn.pack(side="right", padx=(int(5*MOD), 0))
 
-        ctk.CTkEntry(header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=int(40*MOD), fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal")).pack(side="left", fill="x", expand=True)
+        ctk.CTkEntry(self.header, placeholder_text="Search...", placeholder_text_color=SubTextColor, text_color=SubTextColor, height=int(40*MOD), fg_color=SideBarColor, border_color=AccentColor, border_width=2, corner_radius=8, font=("Ubuntu", int(20*MOD), "normal")).pack(side="left", fill="x", expand=True)
 
         self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True)
@@ -324,7 +324,7 @@ class Playlist(ctk.CTkFrame):
         data=self.data.get_playlists()
 
         for s in data:
-            P_PlaylistDisp(self.scroll, s[0], s[1], s[2])
+            P_PlaylistDisp(self.scroll, s[0], s[1], s[2], on_open=self.OpenPlaylist)
 
     def AddPlaylist(self):
         pass
@@ -334,6 +334,18 @@ class Playlist(ctk.CTkFrame):
 
     def SetActive(self, active):
         self.AddPlaylBtn.configure(fg_color=SelectColor if active else SideBarColor)
+
+    def OpenPlaylist(self, PlaylistSno, PlaylistName, CoverDir):
+        self.header.pack_forget()
+        self.scroll.pack_forget()
+        self.current_playlist=P_FullPlaylistView(self, PlaylistSno, PlaylistName, CoverDir, back=self.ClosePlaylist)
+        self.current_playlist.pack(fill="both", expand=True)
+
+    def ClosePlaylist(self):
+        self.current_playlist.pack_forget()
+        self.current_playlist=None
+        self.header.pack(fill="x", pady=(0, int(20*MOD)))
+        self.scroll.pack(fill="both", expand=True)
 
 class P_PlaylistDisp(ctk.CTkFrame):
     def __init__(self, master, PlaylistSno, PlaylistName, CoverDir, on_open=None):
@@ -347,7 +359,8 @@ class P_PlaylistDisp(ctk.CTkFrame):
         self.CoverDir=CoverDir
         self.on_open=on_open
 
-        art=Image.open()
+        #art=Image.open()
+        art=None
         if art is None:
             art = Image.new("RGB", (45,45), color=(40, 40, 40))
         self.cover_img=ctk.CTkImage(art, size=(int(100*MOD), int(100*MOD)))
@@ -360,26 +373,46 @@ class P_PlaylistDisp(ctk.CTkFrame):
 
         self.options_but=ctk.CTkButton(self, text=">", width=int(30*MOD), height=int(30*MOD), hover_color=HoverColor, fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD)), command=self.GoToPlaylist)
         self.options_but.pack(side="right", padx=(10*MOD, 10*MOD))
-        
+
     def GoToPlaylist(self):
         if self.on_open: self.on_open(self.PlaylistSno, self.PlaylistName, self.CoverDir)
 
-    def OpenPlaylist(self, PlaylistSno, PlaylistName, CoverDir):
-        self.scroll.pack_forget()
-        self.header.pack_forget()
-        if hasattr(self, 'current_playlist') and self.current_playlist:
-            self.current_playlist.pack_forget()
-        self.current_playlist=P_MusicDisp(self, PlaylistSno, PlaylistName, CoverDir, self.pi, self.engine, self.QDB, self.conn, self.cursor, back=self.ClosePlaylist)
-        self.current_playlist.pack(fill="both", expand=True)
+class P_FullPlaylistView(ctk.CTkFrame):
+    def __init__(self, master, PlaylistSno, PlaylistName, CoverDir, back=None):
+        super().__init__(master, fg_color="transparent")
+        self.pack(fill="both", expand=True)
+        self.PlaylistSno=PlaylistSno
+        self.PlaylistName=PlaylistName
+        self.CoverDir=CoverDir
 
-    def ClosePlaylist(self):
-        self.current_playlist.pack_forget()
-        self.current_playlist=None
-        self.header.pack(fill="x", pady=(0, 20*MOD))
+        art=Image.new("RGB", (200,200), color=(40,40,40))
+
+        self.PlaylistInfo=ctk.CTkFrame(self, fg_color=SideBarColor)
+        self.PlaylistInfo.pack(fill="x")
+
+        ctk.CTkButton(self.PlaylistInfo, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=10)
+
+        self.cover_img=ctk.CTkImage(art, size=(int(200*MOD), int(200*MOD)))
+        self.cover_art=ctk.CTkLabel(self.PlaylistInfo, image=self.cover_img, text="")
+        self.cover_art.pack(side="left", padx=(int(10*MOD), int(10*MOD)))
+
+        ctk.CTkLabel(self.PlaylistInfo, text=PlaylistName, anchor="w", text_color=TextColor, font=("Ubuntu", int(25*MOD), "bold")).pack(side="left", pady=(int(4*MOD), 0), padx=(int(5*MOD),0))
+
+        self.options=ctk.CTkFrame(self.PlaylistInfo, fg_color="transparent")
+        self.options.pack(side="right", padx=(10,10))
+        ctk.CTkButton(self.options, width=int(100*MOD), height=int(35*MOD), corner_radius=6, fg_color=AccentColor, hover_color=HoverColor, text_color=TextColor, font=("Ubuntu", int(15*MOD)), text="CN").pack(side="left", padx=3)
+        ctk.CTkButton(self.options, width=int(100*MOD), height=int(35*MOD), corner_radius=6, fg_color=AccentColor, hover_color=HoverColor, text_color=TextColor, font=("Ubuntu", int(15*MOD)), text="CA").pack(side="left", padx=3)
+        ctk.CTkButton(self.options, width=int(100*MOD), height=int(35*MOD), corner_radius=6, fg_color=AccentColor, hover_color=HoverColor, text_color=TextColor, font=("Ubuntu", int(15*MOD)), text="DP").pack(side="left", padx=3)
+
+        self.scroll=ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(fill="both", expand=True)
 
-class P_FullPlaylistView(ctk.CTkFrame):
-    pass
+        self.GetDispSong()
+
+    def GetDispSong(self):
+        data=TempData().get_playlist_songs(self.PlaylistSno)
+        for s in data:
+            AM_DispSong(self.scroll, s[0], s[1], s[2])
 
 class P_MusicDisp(ctk.CTkFrame):
     pass
@@ -519,7 +552,6 @@ class S_Sound(ctk.CTkFrame):
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
 
-
 class S_Network(ctk.CTkFrame):
     def __init__(self, master, back=None):
         super().__init__(master, fg_color="transparent")
@@ -527,7 +559,6 @@ class S_Network(ctk.CTkFrame):
         row=ctk.CTkFrame(self, fg_color=SideBarColor, height=int(80*MOD))
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
-
 
 class S_History(ctk.CTkFrame):
     def __init__(self, master, back=None):
@@ -537,7 +568,6 @@ class S_History(ctk.CTkFrame):
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
 
-
 class S_Notifications(ctk.CTkFrame):
     def __init__(self, master, back=None):
         super().__init__(master, fg_color="transparent")
@@ -545,7 +575,6 @@ class S_Notifications(ctk.CTkFrame):
         row=ctk.CTkFrame(self, fg_color=SideBarColor, height=int(80*MOD))
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
-
 
 class S_KeyboardShortcut(ctk.CTkFrame):
     def __init__(self, master, back=None):
@@ -555,7 +584,6 @@ class S_KeyboardShortcut(ctk.CTkFrame):
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
 
-
 class S_About(ctk.CTkFrame):
     def __init__(self, master, back=None):
         super().__init__(master, fg_color="transparent")
@@ -563,7 +591,6 @@ class S_About(ctk.CTkFrame):
         row=ctk.CTkFrame(self, fg_color=SideBarColor, height=int(80*MOD))
         row.pack(fill="x", pady=5)
         ctk.CTkButton(row, text="← Back", fg_color="transparent", hover_color=SideBarColor, text_color=SubTextColor, font=("Ubuntu", int(15*MOD)), command=back).pack(side="left", padx=20)
-
 
 class S_Terminal:
     pass
