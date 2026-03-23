@@ -9,6 +9,8 @@ import sqlite3
 import requests
 import threading
 from PIL import Image
+import PIL.ImageFilter
+from PIL import ImageGrab
 import customtkinter as ctk
 from datetime import datetime
 
@@ -208,9 +210,6 @@ class AllMusic(ctk.CTkFrame):
     def AddMusic(self):
         self.overlay=AM_AddMusic(self.winfo_toplevel())
 
-    def CloseAddMusic(self):
-        self.overlay.destroy()
-
     def Filter(self):
         pass
 
@@ -222,9 +221,25 @@ class AllMusic(ctk.CTkFrame):
         self.FltBtn.configure(fg_color=SelectColor if active else SideBarColor)
 
 class AM_AddMusic(ctk.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master, fg_color=BGcolor, corner_radius=12, border_color=AccentColor, border_width=1)
+    def __init__(self, master, back=None):
+        root=master.winfo_toplevel()
+        root.update_idletasks()
+    
+        x,y,w,h=root.winfo_rootx(), root.winfo_rooty(), root.winfo_width(), root.winfo_height()
+        img=ImageGrab.grab(bbox=(x,y,x+w,y+h))
+        img=img.filter(PIL.ImageFilter.GaussianBlur(10))
+    
+        self.bg_img=ctk.CTkImage(img, size=(w,h))
+        self.backdrop=ctk.CTkLabel(master, image=self.bg_img, text="")
+        self.backdrop.place(x=0, y=0, relwidth=1, relheight=1)
+        self.backdrop.bind("<Button-1>", lambda e: self.Close())
+    
+        super().__init__(root, fg_color=SideBarColor, corner_radius=12, border_color=AccentColor, border_width=1)
         self.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.6, relheight=0.6)
+
+    def Close(self):
+        self.backdrop.destroy()
+        self.destroy()
 
 class Playlist(ctk.CTkFrame):
     def __init__(self, master, command=None, is_active=False):
@@ -351,9 +366,25 @@ class P_NoMusicDisp(ctk.CTkFrame):
         ctk.CTkLabel(self.scroll, text="No Playlists...", anchor="w", fg_color="transparent", text_color=SubTextColor, font=("Ubuntu", int(20*MOD), "normal"))
 
 class P_MakePlaylist(ctk.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master, fg_color=BGcolor, corner_radius=12, border_color=AccentColor, border_width=1)
+    def __init__(self, master, back=None):
+        root=master.winfo_toplevel()
+        root.update_idletasks()
+    
+        x,y,w,h=root.winfo_rootx(), root.winfo_rooty(), root.winfo_width(), root.winfo_height()
+        img=ImageGrab.grab(bbox=(x,y,x+w,y+h))
+        img=img.filter(PIL.ImageFilter.GaussianBlur(10))
+    
+        self.bg_img=ctk.CTkImage(img, size=(w,h))
+        self.backdrop=ctk.CTkLabel(master, image=self.bg_img, text="")
+        self.backdrop.place(x=0, y=0, relwidth=1, relheight=1)
+        self.backdrop.bind("<Button-1>", lambda e: self.Close())
+    
+        super().__init__(root, fg_color=SideBarColor, corner_radius=12, border_color=AccentColor, border_width=1)
         self.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.6, relheight=0.6)
+
+    def Close(self):
+        self.backdrop.destroy()
+        self.destroy()
 
 class History(ctk.CTkFrame):
     def __init__(self, master, command=None, is_active=False):
